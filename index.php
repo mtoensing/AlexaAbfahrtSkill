@@ -32,7 +32,8 @@ class DBJourneyXMLParser {
 			}
 
 			$this->fixBAHNXML();
-			$this->getDirections();
+			//$this->getDirections()
+			$this->getInfo();
 		}
 	}
 
@@ -42,6 +43,14 @@ class DBJourneyXMLParser {
 	public function fixBAHNXML() {
 		$xml            = '<?xml version="1.0" encoding="UTF-8" standalone="no" ?><Journeys>' . $this->data . '</Journeys>';
 		$this->journeys = simplexml_load_string( $xml );
+	}
+
+	public function fixProduct($product){
+		$product = trim($product);
+		$product = substr($product, 0, strpos($product, "#"));
+		$clean_product = preg_replace('/\s+/', '', $product);
+
+		return $clean_product;
 	}
 
 	public function getDirections() {
@@ -54,9 +63,14 @@ class DBJourneyXMLParser {
 		print_r( array_unique( $directions ) );
 	}
 
+
+
 	public function getInfo() {
 		foreach ( $this->journeys as $journey ) {
-			echo $journey['targetLoc'];
+			if($journey['targetLoc'] == $this->destination){
+				echo $this->fixProduct($journey['prod']) .' - ' .$journey['fpTime'] . ' - ' . $journey['delay'] . '<Br>';
+			}
+
 		}
 	}
 	
