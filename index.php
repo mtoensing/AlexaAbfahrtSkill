@@ -38,6 +38,13 @@ class Journey {
 		$this->arrival_timestamp = $arrival_timestamp;
 	}
 
+	public function fixProduct() {
+		$product       = trim( $this->product );
+		$product       = substr( $product, 0, strpos( $product, "#" ) );
+		$this->product  = preg_replace( '/\s+/', '', $product );
+
+	}
+
 }
 
 class DBJourneyXMLParser {
@@ -139,13 +146,7 @@ class DBJourneyXMLParser {
 		$this->journeys_xml = simplexml_load_string( $xml );
 	}
 
-	public function fixProduct( $product ) {
-		$product       = trim( $product );
-		$product       = substr( $product, 0, strpos( $product, "#" ) );
-		$clean_product = preg_replace( '/\s+/', '', $product );
 
-		return $clean_product;
-	}
 
 	public function getDirections() {
 		$directions = array();
@@ -210,6 +211,7 @@ class DBJourneyXMLParser {
 
 			$product = $journey_xml['prod']->__toString();
 			$journey->setProduct( $product );
+			$journey->fixProduct();
 
 			$delay = $journey_xml['delay']->__toString();
 			$journey->setDelay( $delay );
