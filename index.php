@@ -74,6 +74,14 @@ class DBJourneyXMLParser {
 	public $journeys_xml = '';
 	public $origin = '';
 	public $destination = '';
+	public $destination_only;
+
+	/**
+	 * @param mixed $filter_destination_only
+	 */
+	public function setDestinationOnly( $destination_only ) {
+		$this->destination_only = $destination_only;
+	}
 
 	/**
 	 * DBJourneyXMLParser
@@ -82,7 +90,7 @@ class DBJourneyXMLParser {
 
 		$this->setOrigin( $origin );
 		$this->setDestination( $destination );
-
+		$this->setDestinationOnly(true);
 		$this->getXML();
 		$this->fillJourneys();
 
@@ -94,7 +102,7 @@ class DBJourneyXMLParser {
 
 	public function renderJourneys() {#
 		foreach ( $this->journeys as $journey ) {
-			echo $journey->getRelativeMinutes() . ' - ' . $journey->getArrivalFullDate(). '<br>';
+			echo $journey->product . ' - In ' . $journey->getRelativeMinutes() . ' Min. - ' . $journey->destination . '<br>';
 		}
 	}
 
@@ -144,7 +152,6 @@ class DBJourneyXMLParser {
 			die( "xml data is empty" );
 
 		}
-
 
 		$this->setData( $data );
 
@@ -211,11 +218,15 @@ class DBJourneyXMLParser {
 
 			$journey = new Journey();
 
-			$arrvial_timestamp = strtotime( $journey_xml['fpTime'] );
-			$journey->setArrivalTimestamp( $arrvial_timestamp );
+			$arrival_timestamp = strtotime( $journey_xml['fpTime'] );
+			$journey->setArrivalTimestamp( $arrival_timestamp );
 
 			$destination = $journey_xml['targetLoc']->__toString();
 			$journey->setDestination( $destination );
+
+			if($this->destination_only == true && $destination != $this->destination){
+				continue;
+			}
 
 			$product = $journey_xml['prod']->__toString();
 			$journey->setProduct( $product );
@@ -225,9 +236,7 @@ class DBJourneyXMLParser {
 			$journey->setDelay( $delay );
 
 			if($journey->getRelativeMinutes() > 0) {
-
 				$this->setJourneys( $journey );
-
 			}
 
 		}
