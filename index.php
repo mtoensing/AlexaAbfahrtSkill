@@ -10,11 +10,25 @@ class Journey {
 	public $arrival_timestamp = '';
 	public $delay = '';
 
+
+	public function getArrivalFullDate(){
+		return date( 'l dS \o\f F Y H:i:s', $this->arrival_timestamp );
+	}
+
+	public function getRelativeMinutes(){
+		$diff = $this->arrival_timestamp - time();
+		return floor($diff/60);
+	}
+
 	/**
 	 * @param string $delay
 	 */
 	public function setDelay( $delay ) {
-		$this->delay = $delay;
+		if ( is_numeric( $delay ) ) {
+			$this->delay = intval( $delay );
+		} else {
+			$this->delay = 0;
+		}
 	}
 
 	/**
@@ -41,7 +55,7 @@ class Journey {
 	public function fixProduct() {
 		$product       = trim( $this->product );
 		$product       = substr( $product, 0, strpos( $product, "#" ) );
-		$this->product  = preg_replace( '/\s+/', '', $product );
+		$this->product = preg_replace( '/\s+/', '', $product );
 
 	}
 
@@ -57,7 +71,7 @@ class DBJourneyXMLParser {
 
 	public $data = '';
 	public $journeys = array();
-	public $journeys_xml ='';
+	public $journeys_xml = '';
 	public $origin = '';
 	public $destination = '';
 
@@ -66,24 +80,23 @@ class DBJourneyXMLParser {
 	 */
 	public function __construct( $origin, $destination ) {
 
-			$this->setOrigin($origin);
-			$this->setDestination($destination);
+		$this->setOrigin( $origin );
+		$this->setDestination( $destination );
 
+		$this->getXML();
+		$this->fillJourneys();
 
-			$this->getXML();
-			$this->fillJourneys();
+		$this->renderJourneys();
 
-
-
-			var_dump($this->journeys);
-
-			//$this->getDirections()
-			//echo $this->getInfo();
+		var_dump( $this->journeys );
 
 	}
 
-
-
+	public function renderJourneys() {#
+		foreach ( $this->journeys as $journey ) {
+			echo $journey->getRelativeMinutes() . ' - ' . $journey->getArrivalFullDate(). '<br>';
+		}
+	}
 
 	/**
 	 * @param string $journeys_xml
@@ -114,8 +127,8 @@ class DBJourneyXMLParser {
 	}
 
 
-	public function getXML(){
-		$url  = DBJourneyXMLParser::BAHN_ENDPOINT_URL . urlencode( $this->origin );
+	public function getXML() {
+		$url = DBJourneyXMLParser::BAHN_ENDPOINT_URL . urlencode( $this->origin );
 
 		if ( DBJourneyXMLParser::MOCK == true ) {
 			$url = 'mock.txt';
@@ -127,12 +140,13 @@ class DBJourneyXMLParser {
 
 		$data = file_get_contents( $url );
 
-		if ($data === false ) {
-			die("xml data is empty");
+		if ( $data === false ) {
+			die( "xml data is empty" );
 
 		}
 
-		$this->setData($data);
+
+		$this->setData( $data );
 
 		$this->convertBAHNXML();
 	}
@@ -142,10 +156,9 @@ class DBJourneyXMLParser {
 	 * fix BAHN XML
 	 */
 	public function convertBAHNXML() {
-		$xml            = '<?xml version="1.0" encoding="UTF-8" standalone="no" ?><Journeys>' . $this->data . '</Journeys>';
+		$xml                = '<?xml version="1.0" encoding="UTF-8" standalone="no" ?><Journeys>' . $this->data . '</Journeys>';
 		$this->journeys_xml = simplexml_load_string( $xml );
 	}
-
 
 
 	public function getDirections() {
@@ -158,12 +171,7 @@ class DBJourneyXMLParser {
 		print_r( array_unique( $directions ) );
 	}
 
-	public function getFullDate( $arrival_time ) {
 
-		$timestamp_arrival = strtotime( $arrival_time );
-
-		return date( 'l dS \o\f F Y H:i:s', $timestamp_arrival );
-	}
 
 	public function getRelativeTimeInMinutes( $arrival_time ) {
 		$timestamp_arrival = strtotime( $arrival_time );
@@ -216,32 +224,16 @@ class DBJourneyXMLParser {
 			$delay = $journey_xml['delay']->__toString();
 			$journey->setDelay( $delay );
 
-			$this->setJourneys($journey);
+			if($journey->getRelativeMinutes() > 0) {
 
-		}
+				$this->setJourneys( $journey );
 
-	}
-
-	public function getInfo() {
-		$html = '';
-		foreach ( $this->journeys as $journey ) {
-			$html .= '<ul>';
-			if ( $journey['targetLoc'] == $this->destination ) {
-				if ( $this->isNotGone( $journey['fpTime'] ) ) {
-
-					$html .= '<li>PROD: ' . $this->fixProduct( $journey['prod'] ) . '</li>';
-					$html .= '<li>RELATIVE: in ' . $this->getRelativeTimeInMinutes( $journey['fpTime'] ) . '  </li>';
-					$html .= '<li>FULLDATE: ' . $this->getFullDate( $journey['fpTime'] ) . '</li>';
-					$html .= '<li>DISPLAYTIME ' . $journey['fpTime'] . '</li>';
-					$html .= '<li>DELAY: ' . $journey['delay'] . '</li>';
-				}
 			}
-			$html .= '</ul>';
+
 		}
-
-		return $html;
 	}
-
 }
+
+
 
 $test = new DBJourneyXMLParser( "Hannover, Kafkastrasse", "Wettbergen, Hannover" );
