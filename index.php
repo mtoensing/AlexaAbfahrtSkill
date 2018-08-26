@@ -102,21 +102,44 @@ class DBJourneyXMLParser {
 	}
 
 	public function getAlexaJSON() {
-		header("Content-type: application/json; charset=utf-8");
+		header( "Content-type: application/json; charset=utf-8" );
 		$responseArray = [
 			'version'  => '1.0',
 			'response' => [
-				'outputSpeech'     => [
+				'outputSpeech' => [
 					'type' => 'PlainText',
-					'text' => 'Die Linie 7 ab Kafkastr. fährt in ' . $this->journeys[0]->getRelativeMinutes(). ' Minuten. Die Bahn danach fährt in ' . $this->journeys[1]->getRelativeMinutes(). ' Minuten',
+					'text' => 'Die Linie 7 ab ' . $this->origin . ' in Richtung ' . $this->destination . ' fährt in ' . $this->journeys[0]->getRelativeMinutes() . ' Minuten. Die Bahn danach fährt in ' . $this->journeys[0]->getRelativeMinutes() . ' Minuten',
 					'ssml' => null
+
 				],
+				'directives'   => array([
+						'type'     => 'Display.RenderTemplate',
+						'template' => [
+							'type'        => 'BodyTemplate1',
+							'token'       => 'stringstring',
+							'title'       => 'Die Linie 7 ab ' . $this->origin . ' in Richtung ' . $this->destination ,
+							'textContent' => [
+								'primaryText'   => [
+									'text' => $this->journeys[0]->product . ' fährt in ' . $this->journeys[0]->getRelativeMinutes() . ' Minuten',
+									'type' => 'PlainText'
+								],
+								'secondaryText' => [
+									'text' =>  $this->journeys[0]->product . ' fährt in ' . $this->journeys[0]->getRelativeMinutes() . ' Minuten',
+									'type' => 'PlainText'
+								],
+
+							],
+						],
+					]
+				),
+
 				'shouldEndSession' => true
 			]
 		];
 
 		header( 'Content-Type: application/json' );
-		return json_encode( $responseArray ,JSON_UNESCAPED_UNICODE);
+
+		return json_encode( $responseArray, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT );
 	}
 
 	public function renderJourneys() {#

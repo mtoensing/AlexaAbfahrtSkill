@@ -1,0 +1,28 @@
+{
+    "version": "1.0",
+    "response": {
+        "outputSpeech": {
+            "type": "PlainText",
+            "text": "Die Linie 7 ab Hannover, Kafkastrasse in Richtung Wettbergen, Hannover fährt in 18 Minuten. Die Bahn danach fährt in 18 Minuten",
+            "ssml": null
+        }
+    },
+    "directives": {
+        "type": "Display.RenderTemplate",
+        "template": {
+            "type": "ListTemplate1",
+            "token": "list_template_one",
+            "title": "Pizzas",
+            "listItems": {
+                "token": "item_1",
+                "textContent": {
+                    "primaryText": {
+                        "type": "RichText",
+                        "text": "In 18 Minuten"
+                    }
+                }
+            }
+        }
+    },
+    "shouldEndSession": true
+}
