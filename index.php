@@ -11,13 +11,14 @@ class Journey {
 	public $delay = '';
 
 
-	public function getArrivalFullDate(){
+	public function getArrivalFullDate() {
 		return date( 'l dS \o\f F Y H:i:s', $this->arrival_timestamp );
 	}
 
-	public function getRelativeMinutes(){
+	public function getRelativeMinutes() {
 		$diff = $this->arrival_timestamp - time();
-		return floor($diff/60);
+
+		return floor( $diff / 60 );
 	}
 
 	/**
@@ -90,14 +91,32 @@ class DBJourneyXMLParser {
 
 		$this->setOrigin( $origin );
 		$this->setDestination( $destination );
-		$this->setDestinationOnly(true);
+		$this->setDestinationOnly( true );
 		$this->getXML();
 		$this->fillJourneys();
+		echo $this->getAlexaJSON();
+		//$this->renderJourneys();
 
-		$this->renderJourneys();
+		//var_dump( $this->journeys );
 
-		var_dump( $this->journeys );
+	}
 
+	public function getAlexaJSON() {
+		header("Content-type: application/json; charset=utf-8");
+		$responseArray = [
+			'version'  => '1.0',
+			'response' => [
+				'outputSpeech'     => [
+					'type' => 'PlainText',
+					'text' => 'Die Linie 7 ab Kafkastr. fährt in ' . $this->journeys[0]->getRelativeMinutes(). ' Minuten. Die Bahn danach fährt in ' . $this->journeys[1]->getRelativeMinutes(). ' Minuten',
+					'ssml' => null
+				],
+				'shouldEndSession' => true
+			]
+		];
+
+		header( 'Content-Type: application/json' );
+		return json_encode( $responseArray ,JSON_UNESCAPED_UNICODE);
 	}
 
 	public function renderJourneys() {#
@@ -179,7 +198,6 @@ class DBJourneyXMLParser {
 	}
 
 
-
 	public function getRelativeTimeInMinutes( $arrival_time ) {
 		$timestamp_arrival = strtotime( $arrival_time );
 		$now               = strtotime( 'now' );
@@ -224,7 +242,7 @@ class DBJourneyXMLParser {
 			$destination = $journey_xml['targetLoc']->__toString();
 			$journey->setDestination( $destination );
 
-			if($this->destination_only == true && $destination != $this->destination){
+			if ( $this->destination_only == true && $destination != $this->destination ) {
 				continue;
 			}
 
@@ -235,14 +253,13 @@ class DBJourneyXMLParser {
 			$delay = $journey_xml['delay']->__toString();
 			$journey->setDelay( $delay );
 
-			if($journey->getRelativeMinutes() > 0) {
+			if ( $journey->getRelativeMinutes() > 0 ) {
 				$this->setJourneys( $journey );
 			}
 
 		}
 	}
 }
-
 
 
 $test = new DBJourneyXMLParser( "Hannover, Kafkastrasse", "Wettbergen, Hannover" );
