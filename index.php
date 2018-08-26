@@ -205,13 +205,13 @@ class DBJourneyXMLParser {
 			$arrvial_timestamp = strtotime( $journey_xml['fpTime'] );
 			$journey->setArrivalTimestamp( $arrvial_timestamp );
 
-			$destination = $journey_xml['targetLoc'];
+			$destination = $journey_xml['targetLoc']->__toString();
 			$journey->setDestination( $destination );
 
-			$product = $journey_xml['prod'];
+			$product = $journey_xml['prod']->__toString();
 			$journey->setProduct( $product );
 
-			$delay = $journey_xml['delay'];
+			$delay = $journey_xml['delay']->__toString();
 			$journey->setDelay( $delay );
 
 			$this->setJourneys($journey);
