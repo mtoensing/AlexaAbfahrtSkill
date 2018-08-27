@@ -128,11 +128,11 @@ class DBJourneyXMLParser {
 
 		switch (true) {
 			case $journeys_num == 1:
-				$speech = 'In ' . $this->journeys[0]->getRelativeMinutes() . ' Minuten fährt die Linie 7 ab ' . $this->origin . ' in Richtung ' . $this->destination;
+				$speech = 'In ' . $this->journeys[0]->getRelativeMinutes() . ' Minuten fährt die Linie 7 ab ' . $this->origin . ' in Richtung ' . $this->destination . '.';
 				$text1  = $this->journeys[0]->product . ' fährt in ' . $this->journeys[0]->getRelativeMinutes() . ' Minuten';
 				break;
 			case $journeys_num >= 1:
-				$speech = 'In ' . $this->journeys[0]->getRelativeMinutes() . ' Minuten fährt die Linie 7 ab ' . $this->origin . ' in Richtung ' . $this->destination . '. Die nächste Linie 7 fährt in ' . $this->journeys[1]->getRelativeMinutes() . ' Minuten';
+				$speech = 'In ' . $this->journeys[0]->getRelativeMinutes() . ' Minuten fährt die Linie 7 ab ' . $this->origin . ' in Richtung ' . $this->destination . '. Die nächste Linie 7 fährt in ' . $this->journeys[1]->getRelativeMinutes() . ' Minuten.';
 				$text1  = $this->journeys[0]->product . ' fährt in ' . $this->journeys[0]->getRelativeMinutes() . ' Minuten';
 				$text2  = $this->journeys[1]->product . ' fährt in ' . $this->journeys[1]->getRelativeMinutes() . ' Minuten';
 				break;
