@@ -76,6 +76,15 @@ class DBJourneyXMLParser {
 	public $origin = '';
 	public $destination = '';
 	public $destination_only;
+	public $echo_request = '';
+	public $display_supported = false;
+
+	/**
+	 * @param bool $display_supported
+	 */
+	public function setDisplaySupported( $display_supported ) {
+		$this->display_supported = $display_supported;
+	}
 
 	/**
 	 * @param mixed $filter_destination_only
@@ -88,21 +97,28 @@ class DBJourneyXMLParser {
 	 * DBJourneyXMLParser
 	 */
 	public function __construct( $origin, $destination ) {
-
+		$this->getRequest();
 		$this->setOrigin( $origin );
 		$this->setDestination( $destination );
 		$this->setDestinationOnly( true );
 		$this->getXML();
 		$this->fillJourneys();
 		echo $this->getAlexaJSON();
-		//$this->renderJourneys();
-
-		//var_dump( $this->journeys );
 
 	}
 
+	public function getRequest(){
+		$rawJSON = file_get_contents('php://input');
+		$echo_request = json_decode($rawJSON);
+		$this->echo_request = $echo_request;
+
+		if( isset($echo_request->context->System->device->supportedInterfaces->Display) ){
+			$this->setDisplaySupported(true);
+		}
+	}
+
 	public function getAlexaJSON() {
-		
+
 		$speech = 'Ich habe keine Informationen zu ' . $this->journeys[0]->product;
 		$text1 = '';
 		$text2 = '';
@@ -116,7 +132,7 @@ class DBJourneyXMLParser {
 				$text1  = $this->journeys[0]->product . ' fährt in ' . $this->journeys[0]->getRelativeMinutes() . ' Minuten';
 				break;
 			case $journeys_num >= 1:
-				$speech = 'Linie 7 ab ' . $this->origin . ' in Richtung ' . $this->destination . ' fährt in ' . $this->journeys[0]->getRelativeMinutes() . ' Minuten. Die nächste Linie 7 danach fährt in ' . $this->journeys[1]->getRelativeMinutes() . ' Minuten';
+				$speech = 'Linie 7 ab ' . $this->origin . ' in Richtung ' . $this->destination . ' fährt in ' . $this->journeys[0]->getRelativeMinutes() . ' Minuten. Die nächste Linie 7 fährt in ' . $this->journeys[1]->getRelativeMinutes() . ' Minuten';
 				$text1  = $this->journeys[0]->product . ' fährt in ' . $this->journeys[0]->getRelativeMinutes() . ' Minuten';
 				$text2  = $this->journeys[1]->product . ' fährt in ' . $this->journeys[1]->getRelativeMinutes() . ' Minuten';
 				break;
@@ -132,30 +148,34 @@ class DBJourneyXMLParser {
 					'ssml' => null
 
 				],
-				'directives'   => array([
-						'type'     => 'Display.RenderTemplate',
-						'template' => [
-							'type'        => 'BodyTemplate1',
-							'token'       => 'stringstring',
-							'title'       => 'Die Linie 7 ab ' . $this->origin . ' in Richtung ' . $this->destination ,
-							'textContent' => [
-								'primaryText'   => [
-									'text' => $text1,
-									'type' => 'PlainText'
-								],
-								'secondaryText' => [
-									'text' =>  $text2,
-									'type' => 'PlainText'
-								],
-
-							],
-						],
-					]
-				),
 
 				'shouldEndSession' => true
 			]
 		];
+
+		$directives = array([
+			'type'     => 'Display.RenderTemplate',
+			'template' => [
+				'type'        => 'BodyTemplate1',
+				'token'       => 'stringstring',
+				'title'       => 'Die Linie 7 ab ' . $this->origin . ' in Richtung ' . $this->destination ,
+				'textContent' => [
+					'primaryText'   => [
+						'text' => $text1,
+						'type' => 'PlainText'
+					],
+					'secondaryText' => [
+						'text' =>  $text2,
+						'type' => 'PlainText'
+					],
+
+				],
+			],
+		]);
+
+		if($this->display_supported){
+			$responseArray['response']['directives'] = $directives;
+		}
 
 		header( 'Content-Type: application/json' );
 
