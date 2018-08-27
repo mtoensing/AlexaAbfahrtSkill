@@ -79,6 +79,7 @@ class DBJourneyXMLParser {
 	public $echo_request = '';
 	public $display_supported = false;
 	public $remove_from_output = '';
+	public $replace_in_output = '';
 
 	/**
 	 * @param bool $display_supported
@@ -99,7 +100,8 @@ class DBJourneyXMLParser {
 	 */
 	public function __construct( $origin, $destination ) {
 		$this->getRequest();
-		$this->remove_from_output = array(', Hannover','Hannover,');
+		$this->remove_from_output = array( ', Hannover', 'Hannover,' );
+		$this->replace_in_output  = array( 'STB', 'Stadtbahn ' );
 		$this->setOrigin( $origin );
 		$this->setDestination( $destination );
 		$this->setDestinationOnly( true );
@@ -109,40 +111,46 @@ class DBJourneyXMLParser {
 
 	}
 
-	public function getRequest(){
-		$rawJSON = file_get_contents('php://input');
-		$echo_request = json_decode($rawJSON);
+	public function getRequest() {
+		$rawJSON            = file_get_contents( 'php://input' );
+		$echo_request       = json_decode( $rawJSON );
 		$this->echo_request = $echo_request;
 
-		if( isset($echo_request->context->System->device->supportedInterfaces->Display) ){
-			$this->setDisplaySupported(true);
+		if ( isset( $echo_request->context->System->device->supportedInterfaces->Display ) ) {
+			$this->setDisplaySupported( true );
 		}
 	}
 
 	public function getAlexaJSON() {
 
 		$speech = 'Ich habe keine Informationen zu ' . $this->journeys[0]->product;
-		$text1 = '';
-		$text2 = '';
+		$text1  = '';
+		$text2  = '';
 
-		$journeys_num = count($this->journeys);
+		$journeys_num = count( $this->journeys );
 
 
-		switch (true) {
+		switch ( true ) {
 			case $journeys_num == 1:
-				$speech = 'In ' . $this->journeys[0]->getRelativeMinutes() . ' Minuten fährt die Linie 7 ab ' . $this->origin . ' in Richtung ' . $this->destination . '.';
+				$speech = 'In ' . $this->journeys[0]->getRelativeMinutes() . ' Minuten fährt die nächste . ' . $this->journeys[0]->product . ' ab ' . $this->origin . ' in Richtung ' . $this->destination . '.';
 				$text1  = $this->journeys[0]->product . ' fährt in ' . $this->journeys[0]->getRelativeMinutes() . ' Minuten';
 				break;
 			case $journeys_num >= 1:
-				$speech = 'In ' . $this->journeys[0]->getRelativeMinutes() . ' Minuten fährt die Linie 7 ab ' . $this->origin . ' in Richtung ' . $this->destination . '. Die nächste Linie 7 fährt in ' . $this->journeys[1]->getRelativeMinutes() . ' Minuten.';
+				$speech = 'In ' . $this->journeys[0]->getRelativeMinutes() . ' Minuten fährt die ' . $this->journeys[0]->product . ' ab ' . $this->origin . ' in Richtung ' . $this->destination . '. In ' . $this->journeys[1]->getRelativeMinutes() . ' Minuten kommt die nächste ' . $this->journeys[1]->product;
 				$text1  = $this->journeys[0]->product . ' fährt in ' . $this->journeys[0]->getRelativeMinutes() . ' Minuten';
 				$text2  = $this->journeys[1]->product . ' fährt in ' . $this->journeys[1]->getRelativeMinutes() . ' Minuten';
 				break;
 		}
 
-		$speech = str_replace($this->remove_from_output, "", $speech);
-		$text1 = str_replace($this->remove_from_output, "", $text1);
-		$text2 = str_replace($this->remove_from_output, "", $text2);
+		$speech = str_replace( $this->remove_from_output, "", $speech );
+		$text1  = str_replace( $this->remove_from_output, "", $text1 );
+		$text2  = str_replace( $this->remove_from_output, "", $text2 );
+
+		if ( $this->replace_in_output != '' ) {
+			$speech = str_replace( $this->replace_in_output[0], $this->replace_in_output[1], $speech );
+			$text1  = str_replace( $this->replace_in_output[0], $this->replace_in_output[1], $text1 );
+			$text2  = str_replace( $this->replace_in_output[0], $this->replace_in_output[1], $text2 );
+		}
 
 		header( "Content-type: application/json; charset=utf-8" );
 		$responseArray = [
@@ -159,27 +167,29 @@ class DBJourneyXMLParser {
 			]
 		];
 
-		$directives = array([
-			'type'     => 'Display.RenderTemplate',
-			'template' => [
-				'type'        => 'BodyTemplate1',
-				'token'       => 'stringstring',
-				'title'       => 'Die Linie 7 ab ' . $this->origin . ' in Richtung ' . $this->destination ,
-				'textContent' => [
-					'primaryText'   => [
-						'text' => $text1,
-						'type' => 'PlainText'
-					],
-					'secondaryText' => [
-						'text' =>  $text2,
-						'type' => 'PlainText'
-					],
+		$directives = array(
+			[
+				'type'     => 'Display.RenderTemplate',
+				'template' => [
+					'type'        => 'BodyTemplate1',
+					'token'       => 'stringstring',
+					'title'       => 'Die Linie 7 ab ' . $this->origin . ' in Richtung ' . $this->destination,
+					'textContent' => [
+						'primaryText'   => [
+							'text' => $text1,
+							'type' => 'PlainText'
+						],
+						'secondaryText' => [
+							'text' => $text2,
+							'type' => 'PlainText'
+						],
 
+					],
 				],
-			],
-		]);
+			]
+		);
 
-		if($this->display_supported){
+		if ( $this->display_supported ) {
 			$responseArray['response']['directives'] = $directives;
 		}
 
@@ -329,6 +339,5 @@ class DBJourneyXMLParser {
 		}
 	}
 }
-
 
 $test = new DBJourneyXMLParser( "Hannover, Kafkastrasse", "Wettbergen, Hannover" );
