@@ -102,13 +102,35 @@ class DBJourneyXMLParser {
 	}
 
 	public function getAlexaJSON() {
+
+
+
+		$speech = 'Ich habe keine Informationen zu ' . $this->journeys[0]->product;
+		$text1 = '';
+		$text2 = '';
+
+		$journeys_num = count($this->journeys);
+
+
+		switch (true) {
+			case $journeys_num == 1:
+				$speech = 'Linie 7 ab ' . $this->origin . ' in Richtung ' . $this->destination . ' fährt in ' . $this->journeys[0]->getRelativeMinutes() . ' Minuten';
+				$text1  = $this->journeys[0]->product . ' fährt in ' . $this->journeys[0]->getRelativeMinutes() . ' Minuten';
+				break;
+			case $journeys_num >= 1:
+				$speech = 'Linie 7 ab ' . $this->origin . ' in Richtung ' . $this->destination . ' fährt in ' . $this->journeys[0]->getRelativeMinutes() . ' Minuten. Die nächste Linie 7 danach fährt in ' . $this->journeys[1]->getRelativeMinutes() . ' Minuten';
+				$text1  = $this->journeys[0]->product . ' fährt in ' . $this->journeys[0]->getRelativeMinutes() . ' Minuten';
+				$text2  = $this->journeys[1]->product . ' fährt in ' . $this->journeys[1]->getRelativeMinutes() . ' Minuten';
+				break;
+		}
+
 		header( "Content-type: application/json; charset=utf-8" );
 		$responseArray = [
 			'version'  => '1.0',
 			'response' => [
 				'outputSpeech' => [
 					'type' => 'PlainText',
-					'text' => 'Die Linie 7 ab ' . $this->origin . ' in Richtung ' . $this->destination . ' fährt in ' . $this->journeys[0]->getRelativeMinutes() . ' Minuten. Die Bahn danach fährt in ' . $this->journeys[0]->getRelativeMinutes() . ' Minuten',
+					'text' => $speech,
 					'ssml' => null
 
 				],
@@ -120,11 +142,11 @@ class DBJourneyXMLParser {
 							'title'       => 'Die Linie 7 ab ' . $this->origin . ' in Richtung ' . $this->destination ,
 							'textContent' => [
 								'primaryText'   => [
-									'text' => $this->journeys[0]->product . ' fährt in ' . $this->journeys[0]->getRelativeMinutes() . ' Minuten',
+									'text' => $text1,
 									'type' => 'PlainText'
 								],
 								'secondaryText' => [
-									'text' =>  $this->journeys[0]->product . ' fährt in ' . $this->journeys[0]->getRelativeMinutes() . ' Minuten',
+									'text' =>  $text2,
 									'type' => 'PlainText'
 								],
 
