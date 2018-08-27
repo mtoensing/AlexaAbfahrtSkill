@@ -78,6 +78,7 @@ class DBJourneyXMLParser {
 	public $destination_only;
 	public $echo_request = '';
 	public $display_supported = false;
+	public $remove_from_output = '';
 
 	/**
 	 * @param bool $display_supported
@@ -98,6 +99,7 @@ class DBJourneyXMLParser {
 	 */
 	public function __construct( $origin, $destination ) {
 		$this->getRequest();
+		$this->remove_from_output = array(', Hannover','Hannover,');
 		$this->setOrigin( $origin );
 		$this->setDestination( $destination );
 		$this->setDestinationOnly( true );
@@ -137,6 +139,10 @@ class DBJourneyXMLParser {
 				$text2  = $this->journeys[1]->product . ' fährt in ' . $this->journeys[1]->getRelativeMinutes() . ' Minuten';
 				break;
 		}
+
+		$speech = str_replace($this->remove_from_output, "", $speech);
+		$text1 = str_replace($this->remove_from_output, "", $text1);
+		$text2 = str_replace($this->remove_from_output, "", $text2);
 
 		header( "Content-type: application/json; charset=utf-8" );
 		$responseArray = [
