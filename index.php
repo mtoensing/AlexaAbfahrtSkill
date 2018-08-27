@@ -102,9 +102,7 @@ class DBJourneyXMLParser {
 	}
 
 	public function getAlexaJSON() {
-
-
-
+		
 		$speech = 'Ich habe keine Informationen zu ' . $this->journeys[0]->product;
 		$text1 = '';
 		$text2 = '';
