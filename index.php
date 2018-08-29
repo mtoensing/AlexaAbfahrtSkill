@@ -126,13 +126,14 @@ class DBJourneyXMLParser {
 		$speech = 'Ich habe keine Informationen zu ' . $this->journeys[0]->product;
 		$text1  = '';
 		$text2  = '';
+		$title = $this->origin . ' in Richtung ' . $this->destination;
 
 		$journeys_num = count( $this->journeys );
 
 
 		switch ( true ) {
 			case $journeys_num == 1:
-				$speech = 'In ' . $this->journeys[0]->getRelativeMinutes() . ' Minuten fährt die nächste . ' . $this->journeys[0]->product . ' ab ' . $this->origin . ' in Richtung ' . $this->destination . '.';
+				$speech = 'In ' . $this->journeys[0]->getRelativeMinutes() . ' Minuten fährt die nächste ' . $this->journeys[0]->product . ' ab ' . $this->origin . ' in Richtung ' . $this->destination . '.';
 				$text1  = $this->journeys[0]->product . ' fährt in ' . $this->journeys[0]->getRelativeMinutes() . ' Minuten';
 				break;
 			case $journeys_num >= 1:
@@ -145,11 +146,14 @@ class DBJourneyXMLParser {
 		$speech = str_replace( $this->remove_from_output, "", $speech );
 		$text1  = str_replace( $this->remove_from_output, "", $text1 );
 		$text2  = str_replace( $this->remove_from_output, "", $text2 );
+		$title  = str_replace( $this->remove_from_output, "", $title );
+
 
 		if ( $this->replace_in_output != '' ) {
 			$speech = str_replace( $this->replace_in_output[0], $this->replace_in_output[1], $speech );
 			$text1  = str_replace( $this->replace_in_output[0], $this->replace_in_output[1], $text1 );
 			$text2  = str_replace( $this->replace_in_output[0], $this->replace_in_output[1], $text2 );
+			$title  = str_replace( $this->replace_in_output[0], $this->replace_in_output[1], $title );
 		}
 
 		header( "Content-type: application/json; charset=utf-8" );
@@ -173,7 +177,7 @@ class DBJourneyXMLParser {
 				'template' => [
 					'type'        => 'BodyTemplate1',
 					'token'       => 'stringstring',
-					'title'       => 'Die Linie 7 ab ' . $this->origin . ' in Richtung ' . $this->destination,
+					'title'       => $title,
 					'textContent' => [
 						'primaryText'   => [
 							'text' => $text1,
