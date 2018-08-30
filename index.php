@@ -37,7 +37,7 @@ class Journey {
 
 	public function getRelativeMinutes() {
 		$timestampt_diff = $this->arrival_timestamp - time();
-		$minutes = floor( $timestampt_diff / 60 );
+		$minutes         = floor( $timestampt_diff / 60 );
 
 		return $minutes;
 	}
@@ -87,6 +87,7 @@ class DBJourneyXMLParser {
 
 	const BAHN_ENDPOINT_URL = 'https://reiseauskunft.bahn.de//bin/stboard.exe/dn?rt=1&time=actual&start=yes&boardType=dep&L=vs_java3&input=';
 	const USE_LOCALCOPY = true;
+	const CACHE = true;
 
 	public $data = '';
 	public $journeys = array();
@@ -166,7 +167,7 @@ class DBJourneyXMLParser {
 		$EchoReqObj = $this->EchoReqObj;
 		$rawJSON    = $this->rawJSON;
 
-		if($EchoReqObj == ''){
+		if ( $EchoReqObj == '' ) {
 			$this->ThrowRequestError( 400, "Result is empty." );
 		}
 
@@ -353,13 +354,27 @@ class DBJourneyXMLParser {
 
 
 	public function getXML() {
-		$url = DBJourneyXMLParser::BAHN_ENDPOINT_URL . urlencode( $this->origin );
 
-		if ( DBJourneyXMLParser::USE_LOCALCOPY == true ) {
-			$url = 'https://traintime.marc.tv/data.txt';
+		if ( DBJourneyXMLParser::CACHE ) {
+			$filename                = substr( md5( strtolower( $this->origin ) ), 0, 12 ) . '.xml';
+			$local_cache_file        = sys_get_temp_dir() . '/' . $filename;
+			$local_timestamp         = sys_get_temp_dir() . '/ts_' . $filename;
+			$now_timestamp           = time();
+			$last_saved_timestamp    = file_get_contents( $local_timestamp );
+			$diff_minutes_last_saved = round( ( $now_timestamp - $last_saved_timestamp ) / 60 );
+
+			if ( ! file_exists( $local_cache_file ) OR $diff_minutes_last_saved > 5 ) {
+				$url  = DBJourneyXMLParser::BAHN_ENDPOINT_URL . urlencode( $this->origin );
+				$data = file_get_contents( $url );
+				file_put_contents( $local_cache_file, $data );
+				file_put_contents( $local_timestamp, $now_timestamp );
+			} else {
+				$data = file_get_contents( $local_cache_file );
+			}
+		} else {
+			$url  = DBJourneyXMLParser::BAHN_ENDPOINT_URL . urlencode( $this->origin );
+			$data = file_get_contents( $url );
 		}
-
-		$data = file_get_contents( $url );
 
 		if ( $data === false ) {
 			die( "xml data is empty" );
