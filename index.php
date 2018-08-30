@@ -1,10 +1,28 @@
 <?php
 
-/**
- * Class DBJourneyXMLParser
- */
+class AlexaAbfahrtSkill {
+
+	public function __construct() {
+		$DBJourneyXMLParser = new DBJourneyXMLParser();
+
+		$DBJourneyXMLParser->getRequest();
+		$DBJourneyXMLParser->remove_from_output = array( ', Hannover', 'Hannover,' );
+		$DBJourneyXMLParser->replace_in_output  = array( 'STB', 'Stadtbahn ' );
+		$DBJourneyXMLParser->setOrigin( "Hannover, Kafkastrasse" );
+		$DBJourneyXMLParser->setDestination( "Wettbergen, Hannover" );
+		$DBJourneyXMLParser->setShowDestinationOnly( true );
+		$DBJourneyXMLParser->getXML();
+		$DBJourneyXMLParser->fillJourneys();
+
+		echo $DBJourneyXMLParser->getAlexaJSON();
+	}
+
+}
+
+$alexa = new AlexaAbfahrtSkill();
 
 class Journey {
+
 	public $product = '';
 	public $destination = '';
 	public $arrival_timestamp = '';
@@ -12,13 +30,16 @@ class Journey {
 
 
 	public function getArrivalFullDate() {
-		return date( 'l dS \o\f F Y H:i:s', $this->arrival_timestamp );
+		$arrival_date = date( 'l dS \o\f F Y H:i:s', $this->arrival_timestamp );
+
+		return $arrival_date;
 	}
 
 	public function getRelativeMinutes() {
-		$diff = $this->arrival_timestamp - time();
+		$timestampt_diff = $this->arrival_timestamp - time();
+		$minutes = floor( $timestampt_diff / 60 );
 
-		return floor( $diff / 60 );
+		return $minutes;
 	}
 
 	/**
@@ -63,12 +84,9 @@ class Journey {
 }
 
 class DBJourneyXMLParser {
-	private $version = '1.0';
 
 	const BAHN_ENDPOINT_URL = 'https://reiseauskunft.bahn.de//bin/stboard.exe/dn?rt=1&time=actual&start=yes&boardType=dep&L=vs_java3&input=';
-	const MOCK = true;
-	const DEBUG = true;
-	const LOCALCOPY = true;
+	const USE_LOCALCOPY = true;
 
 	public $data = '';
 	public $journeys = array();
@@ -92,23 +110,14 @@ class DBJourneyXMLParser {
 	/**
 	 * @param mixed $filter_destination_only
 	 */
-	public function setDestinationOnly( $destination_only ) {
-		$this->destination_only = $destination_only;
+	public function setShowDestinationOnly( $show_destination_only ) {
+		$this->show_destination_only = $show_destination_only;
 	}
 
 	/**
 	 * DBJourneyXMLParser
 	 */
-	public function __construct( $origin, $destination ) {
-		$this->getRequest();
-		$this->remove_from_output = array( ', Hannover', 'Hannover,' );
-		$this->replace_in_output  = array( 'STB', 'Stadtbahn ' );
-		$this->setOrigin( $origin );
-		$this->setDestination( $destination );
-		$this->setDestinationOnly( true );
-		$this->getXML();
-		$this->fillJourneys();
-		echo $this->getAlexaJSON();
+	public function __construct() {
 
 	}
 
@@ -157,6 +166,10 @@ class DBJourneyXMLParser {
 		$EchoReqObj = $this->EchoReqObj;
 		$rawJSON    = $this->rawJSON;
 
+		if($EchoReqObj == ''){
+			$this->ThrowRequestError( 400, "Result is empty." );
+		}
+
 		// Check if Amazon is the Origin
 		if ( is_array( $SETUP['validIP'] ) ) {
 			$isAllowedHost = false;
@@ -167,18 +180,19 @@ class DBJourneyXMLParser {
 				}
 			}
 			if ( $isAllowedHost == false ) {
-				$this->$this->ThrowRequestError( 403, "Forbidden, your Host is not allowed to make this request!" );
+				$this->$this->ThrowRequestError( 400, "Forbidden, your Host is not allowed to make this request!" );
 			}
 			unset( $isAllowedHost );
 		}
+
 // Check if correct requestId
 		if ( strtolower( $EchoReqObj->session->application->applicationId ) != strtolower( $SETUP['ApplicationID'] ) || empty( $EchoReqObj->session->application->applicationId ) ) {
-			$this->ThrowRequestError( 401, "Forbidden, unkown Application ID!" );
+			$this->ThrowRequestError( 400, "Forbidden, unkown Application ID!" );
 		}
 // Check SSL Signature Chain
 		if ( $SETUP['CheckSignatureChain'] == true ) {
 			if ( preg_match( "/https:\/\/s3.amazonaws.com(\:443)?\/echo.api\/*/i", $_SERVER['HTTP_SIGNATURECERTCHAINURL'] ) == false ) {
-				$this->ThrowRequestError( 403, "Forbidden, unkown SSL Chain Origin!" );
+				$this->ThrowRequestError( 400, "Forbidden, unkown SSL Chain Origin!" );
 			}
 			// PEM Certificate signing Check
 			// First we try to cache the pem file locally
@@ -188,20 +202,20 @@ class DBJourneyXMLParser {
 			}
 			$local_pem = file_get_contents( $local_pem_hash_file );
 			if ( openssl_verify( $rawJSON, base64_decode( $_SERVER['HTTP_SIGNATURE'] ), $local_pem ) !== 1 ) {
-				$this->ThrowRequestError( 403, "Forbidden, failed to verify SSL Signature!" );
+				$this->ThrowRequestError( 400, "Forbidden, failed to verify SSL Signature!" );
 			}
 			// Parse the Certificate for additional Checks
 			$cert = openssl_x509_parse( $local_pem );
 			if ( empty( $cert ) ) {
-				$this->ThrowRequestError( 424, "Certificate parsing failed!" );
+				$this->ThrowRequestError( 400, "Certificate parsing failed!" );
 			}
 			// SANs Check
 			if ( stristr( $cert['extensions']['subjectAltName'], 'echo-api.amazon.com' ) != true ) {
-				$this->ThrowRequestError( 403, "Forbidden! Certificate SANs Check failed!" );
+				$this->ThrowRequestError( 400, "Forbidden! Certificate SANs Check failed!" );
 			}
 			// Check Certificate Valid Time
 			if ( $cert['validTo_time_t'] < time() ) {
-				$this->ThrowRequestError( 403, "Forbidden! Certificate no longer Valid!" );
+				$this->ThrowRequestError( 400, "Forbidden! Certificate no longer Valid!" );
 				// Deleting locally cached file to fetch a new at next req
 				if ( file_exists( $local_pem_hash_file ) ) {
 					unlink( $local_pem_hash_file );
@@ -212,12 +226,12 @@ class DBJourneyXMLParser {
 		}
 // Check Valid Time
 		if ( time() - strtotime( $EchoReqObj->request->timestamp ) > $SETUP['ReqValidTime'] ) {
-			$this->ThrowRequestError( 408, "Request Timeout! Request timestamp is to old." );
+			$this->ThrowRequestError( 400, "Request Timeout! Request timestamp is to old." );
 		}
 // Check AWS Account bound, if this is set only a specific aws account can run the skill
 		if ( ! empty( $SETUP['AWSaccount'] ) ) {
 			if ( empty( $EchoReqObj->session->user->userId ) || $EchoReqObj->session->user->userId != $SETUP['AWSaccount'] ) {
-				$this->ThrowRequestError( 403, "Forbidden! Access is limited to one configured AWS Account." );
+				$this->ThrowRequestError( 400, "Forbidden! Access is limited to one configured AWS Account." );
 			}
 		}
 	}
@@ -341,11 +355,7 @@ class DBJourneyXMLParser {
 	public function getXML() {
 		$url = DBJourneyXMLParser::BAHN_ENDPOINT_URL . urlencode( $this->origin );
 
-		if ( DBJourneyXMLParser::MOCK == true ) {
-			$url = 'mock.txt';
-		}
-
-		if ( DBJourneyXMLParser::LOCALCOPY == true ) {
+		if ( DBJourneyXMLParser::USE_LOCALCOPY == true ) {
 			$url = 'https://traintime.marc.tv/data.txt';
 		}
 
@@ -426,7 +436,7 @@ class DBJourneyXMLParser {
 			$destination = $journey_xml['targetLoc']->__toString();
 			$journey->setDestination( $destination );
 
-			if ( $this->destination_only == true && $destination != $this->destination ) {
+			if ( $this->show_destination_only == true && $destination != $this->destination ) {
 				continue;
 			}
 
@@ -445,4 +455,3 @@ class DBJourneyXMLParser {
 	}
 }
 
-$test = new DBJourneyXMLParser( "Hannover, Kafkastrasse", "Wettbergen, Hannover" );
