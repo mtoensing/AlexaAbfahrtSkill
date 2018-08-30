@@ -1,25 +1,32 @@
 <?php
 
-class AlexaAbfahrtSkill {
+$DBJourneyXMLParser = new DBJourneyXMLParser();
 
-	public function __construct() {
-		$DBJourneyXMLParser = new DBJourneyXMLParser();
+$DBJourneyXMLParser->setup = array(
+	'ApplicationID'       => 'amzn1.ask.skill.6f5d7f58-b0c7-4ef4-96c8-dd28418c96ba',
+	// From your ALEXA developer console like: 'amzn1.ask.skill.45c11234-123a-1234-ffaa-1234567890a'
+	'CheckSignatureChain' => true,
+	// make sure the request is a true amazonaws api call
+	'ReqValidTime'        => 60,
+	// Time in Seconds a request is valid
+	'AWSaccount'          => '',
+	//If this is != empty the specified session->user->userId is required. This is usefull for account bound private only skills
+	'validIP'             => false,
+	// Limit allowed requests to specified IPv4, set to FALSE to disable the check.
+	'LC_TIME'             => "de_DE"
+	// We use german Echo so we want our date output to be german
+);
+$DBJourneyXMLParser->getRequest();
+$DBJourneyXMLParser->remove_from_output = array( ', Hannover', 'Hannover,' );
+$DBJourneyXMLParser->replace_in_output  = array( 'STB', 'Stadtbahn ' );
+$DBJourneyXMLParser->setOrigin( "Hannover, Kafkastrasse" );
+$DBJourneyXMLParser->setDestination( "Wettbergen, Hannover" );
+$DBJourneyXMLParser->setShowDestinationOnly( true );
+$DBJourneyXMLParser->getXML();
+$DBJourneyXMLParser->fillJourneys();
 
-		$DBJourneyXMLParser->getRequest();
-		$DBJourneyXMLParser->remove_from_output = array( ', Hannover', 'Hannover,' );
-		$DBJourneyXMLParser->replace_in_output  = array( 'STB', 'Stadtbahn ' );
-		$DBJourneyXMLParser->setOrigin( "Hannover, Kafkastrasse" );
-		$DBJourneyXMLParser->setDestination( "Wettbergen, Hannover" );
-		$DBJourneyXMLParser->setShowDestinationOnly( true );
-		$DBJourneyXMLParser->getXML();
-		$DBJourneyXMLParser->fillJourneys();
+echo $DBJourneyXMLParser->getAlexaJSON();
 
-		echo $DBJourneyXMLParser->getAlexaJSON();
-	}
-
-}
-
-$alexa = new AlexaAbfahrtSkill();
 
 class Journey {
 
@@ -89,6 +96,7 @@ class DBJourneyXMLParser {
 	const USE_LOCALCOPY = true;
 	const CACHE = true;
 
+	public $setup = array();
 	public $data = '';
 	public $journeys = array();
 	public $journeys_xml = '';
@@ -136,36 +144,20 @@ class DBJourneyXMLParser {
 	}
 
 	public function ThrowRequestError( $code = 400, $msg = 'Bad Request' ) {
-		GLOBAL $SETUP;
 		$code = 400;
 		http_response_code( $code );
 		echo "Error " . $code . "<br />\n" . $msg;
-		error_log( "alexa/" . $SETUP['SkillName'] . ":\t" . $msg, 0 );
+		error_log( "alexa" . $msg, 0 );
 		exit();
 	}
 
 
 	public function validateRequest() {
 
-		$SETUP = array(
-			'SkillName'           => "kafkastrasse",
-			'SkillVersion'        => '1.0',
-			'ApplicationID'       => 'amzn1.ask.skill.6f5d7f58-b0c7-4ef4-96c8-dd28418c96ba',
-			// From your ALEXA developer console like: 'amzn1.ask.skill.45c11234-123a-1234-ffaa-1234567890a'
-			'CheckSignatureChain' => true,
-			// make sure the request is a true amazonaws api call
-			'ReqValidTime'        => 60,
-			// Time in Seconds a request is valid
-			'AWSaccount'          => '',
-			//If this is != empty the specified session->user->userId is required. This is usefull for account bound private only skills
-			'validIP'             => false,
-			// Limit allowed requests to specified IPv4, set to FALSE to disable the check.
-			'LC_TIME'             => "de_DE"
-			// We use german Echo so we want our date output to be german
-		);
 
 		$EchoReqObj = $this->EchoReqObj;
 		$rawJSON    = $this->rawJSON;
+		$SETUP      = $this->setup;
 
 		if ( $EchoReqObj == '' ) {
 			$this->ThrowRequestError( 400, "Result is empty." );
