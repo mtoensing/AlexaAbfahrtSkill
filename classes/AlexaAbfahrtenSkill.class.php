@@ -11,7 +11,7 @@ class AlexaAbfahrtenSkill {
 
 	const BAHN_ENDPOINT_URL = 'https://reiseauskunft.bahn.de//bin/stboard.exe/dn?rt=1&time=actual&start=yes&boardType=dep&L=vs_java3&input=';
 	const USE_LOCALCOPY = true;
-	const CACHE_IN_MINUTES = 1;
+	const CACHE_IN_MINUTES = 5;
 
 	public $debug = false;
 	public $setup = array();
@@ -281,7 +281,7 @@ class AlexaAbfahrtenSkill {
 	public function getXML() {
 
 		if ( AlexaAbfahrtenSkill::CACHE_IN_MINUTES > 0 ) {
-			$filename         = substr( md5( strtolower( $this->origin ) ), 0, 12 ) . 'e.xml';
+			$filename         = substr( md5( strtolower( $this->origin ) ), 0, 12 ) . '.xml';
 			$local_cache_file = sys_get_temp_dir() . '/' . $filename;
 			$local_timestamp  = sys_get_temp_dir() . '/ts_' . $filename;
 			$now_timestamp    = time();
