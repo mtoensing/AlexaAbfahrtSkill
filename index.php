@@ -23,7 +23,7 @@ $AlexaAbfahrtenSkill->setup = array(
 );
 
 $AlexaAbfahrtenSkill->getRequest();
-$AlexaAbfahrtenSkill->remove_from_output = array( ', Hannover', 'Hannover,' );
+$AlexaAbfahrtenSkill->remove_from_output = array( ', Hannover', 'Hannover, ' );
 $AlexaAbfahrtenSkill->replace_in_output  = array( 'STB', 'Stadtbahn ' );
 $AlexaAbfahrtenSkill->setOrigin( "Hannover, Kafkastrasse" );
 $AlexaAbfahrtenSkill->setDestination( "Wettbergen, Hannover" );

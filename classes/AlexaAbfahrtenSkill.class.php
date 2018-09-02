@@ -10,7 +10,6 @@
 class AlexaAbfahrtenSkill {
 
 	const BAHN_ENDPOINT_URL = 'https://reiseauskunft.bahn.de//bin/stboard.exe/dn?rt=1&time=actual&start=yes&boardType=dep&L=vs_java3&input=';
-	const USE_LOCALCOPY = true;
 	const CACHE_IN_MINUTES = 5;
 
 	public $list_image_url = "https://traintime.marc.tv/assets/tram-small.png";
