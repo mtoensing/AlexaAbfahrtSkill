@@ -1,4 +1,4 @@
-# AlexaAbfahrtSkill
+# Alexa Abfahrt Skill
 Simple Alexa Echo Skill in php. Returns the departue timein minutes of the next train, tram or bus by using the reiseauskunft.bahn.de API. 
 
 ## good to know
