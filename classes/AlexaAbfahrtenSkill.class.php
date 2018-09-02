@@ -13,6 +13,7 @@ class AlexaAbfahrtenSkill {
 	const USE_LOCALCOPY = true;
 	const CACHE_IN_MINUTES = 5;
 
+	public $list_image_url = "https://traintime.marc.tv/assets/tram-small.png";
 	public $debug = false;
 	public $setup = array();
 	public $data = '';
@@ -179,8 +180,8 @@ class AlexaAbfahrtenSkill {
 				break;
 			case $journeys_num >= 1:
 				$speech = 'In ' . $this->journeys[0]->getRelativeMinutes() . ' Minuten fährt die ' . $this->journeys[0]->product . ' ab ' . $this->origin . ' in Richtung ' . $this->destination . '. In ' . $this->journeys[1]->getRelativeMinutes() . ' Minuten kommt die nächste ' . $this->journeys[1]->product;
-				$text1  = $this->journeys[0]->product . ' fährt in ' . $this->journeys[0]->getRelativeMinutes() . ' Minuten';
-				$text2  = $this->journeys[1]->product . ' fährt in ' . $this->journeys[1]->getRelativeMinutes() . ' Minuten';
+				$text1  = '<font size="7">In <b>' . $this->journeys[0]->getRelativeMinutes() . '</b> Minuten</font>';
+				$text2  = '<font size="7">In <b>' . $this->journeys[1]->getRelativeMinutes() . '</b> Minuten</font>';
 				break;
 		}
 
@@ -216,25 +217,46 @@ class AlexaAbfahrtenSkill {
 			[
 				'type'     => 'Display.RenderTemplate',
 				'template' => [
-					'type'        => 'BodyTemplate1',
-					'token'       => 'stringstring',
-					'title'       => $title,
-					'textContent' => [
-						'primaryText'   => [
-							'text' => $text1,
-							'type' => 'PlainText'
+					'type'      => 'ListTemplate1',
+					'token'     => 'departure-list',
+					'title'     => $title,
+					'listItems' => array(
+						[
+							'token'       => 'departure-item-1',
+							'image'       => [
+								'contentDescription' => 'Tram',
+								'sources' => array([
+									'url' => $this->list_image_url,
+								]),
+							],
+							'textContent' => [
+								'primaryText' => [
+									'text' => $text1,
+									'type' => 'RichText'
+								],
+							],
 						],
-						'secondaryText' => [
-							'text' => $text2,
-							'type' => 'PlainText'
-						],
-
-					],
+						[
+							'token'         => 'departure-item-2',
+							'image'       => [
+								'contentDescription' => 'Tram',
+								'sources' => array([
+									'url' => $this->list_image_url,
+								]),
+							],
+							'textContent' => [
+								'primaryText' => [
+									'text' => $text2,
+									'type' => 'RichText'
+								],
+							],
+						]
+					),
 				],
 			]
 		);
 
-		if ( $this->display_supported ) {
+		if ( $this->display_supported OR $this->debug == true) {
 			$responseArray['response']['directives'] = $directives;
 		}
 
@@ -394,7 +416,7 @@ class AlexaAbfahrtenSkill {
 			$delay = $journey_xml['delay']->__toString();
 			$journey->setDelay( $delay );
 
-			if ( $journey->getRelativeMinutes() > 0 ) {
+			if ( $journey->getRelativeMinutes() > 1 ) {
 				$this->setJourneys( $journey );
 			}
 
