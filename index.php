@@ -1,8 +1,12 @@
 <?php
 
-$DBJourneyXMLParser = new DBJourneyXMLParser();
+$AlexaAbfahrtenSkill = new AlexaAbfahrtenSkill();
 
-$DBJourneyXMLParser->setup = array(
+if ( isset( $_GET["debug"] ) AND htmlspecialchars( $_GET["debug"] ) == true ) {
+	$AlexaAbfahrtenSkill->setDebug( true );
+}
+
+$AlexaAbfahrtenSkill->setup = array(
 	'ApplicationID'       => 'amzn1.ask.skill.6f5d7f58-b0c7-4ef4-96c8-dd28418c96ba',
 	// From your ALEXA developer console like: 'amzn1.ask.skill.45c11234-123a-1234-ffaa-1234567890a'
 	'CheckSignatureChain' => true,
@@ -16,16 +20,16 @@ $DBJourneyXMLParser->setup = array(
 	'LC_TIME'             => "de_DE"
 	// We use german Echo so we want our date output to be german
 );
-$DBJourneyXMLParser->getRequest();
-$DBJourneyXMLParser->remove_from_output = array( ', Hannover', 'Hannover,' );
-$DBJourneyXMLParser->replace_in_output  = array( 'STB', 'Stadtbahn ' );
-$DBJourneyXMLParser->setOrigin( "Hannover, Kafkastrasse" );
-$DBJourneyXMLParser->setDestination( "Wettbergen, Hannover" );
-$DBJourneyXMLParser->setShowDestinationOnly( true );
-$DBJourneyXMLParser->getXML();
-$DBJourneyXMLParser->fillJourneys();
+$AlexaAbfahrtenSkill->getRequest();
+$AlexaAbfahrtenSkill->remove_from_output = array( ', Hannover', 'Hannover,' );
+$AlexaAbfahrtenSkill->replace_in_output  = array( 'STB', 'Stadtbahn ' );
+$AlexaAbfahrtenSkill->setOrigin( "Hannover, Kafkastrasse" );
+$AlexaAbfahrtenSkill->setDestination( "Wettbergen, Hannover" );
+$AlexaAbfahrtenSkill->setShowDestinationOnly( true );
+$AlexaAbfahrtenSkill->getXML();
+$AlexaAbfahrtenSkill->fillJourneys();
 
-echo $DBJourneyXMLParser->getAlexaJSON();
+echo $AlexaAbfahrtenSkill->getAlexaJSONResponse();
 
 
 class Journey {
@@ -90,12 +94,13 @@ class Journey {
 
 }
 
-class DBJourneyXMLParser {
+class AlexaAbfahrtenSkill {
 
 	const BAHN_ENDPOINT_URL = 'https://reiseauskunft.bahn.de//bin/stboard.exe/dn?rt=1&time=actual&start=yes&boardType=dep&L=vs_java3&input=';
 	const USE_LOCALCOPY = true;
-	const CACHE = true;
+	const CACHE_IN_MINUTES = 1;
 
+	public $debug = false;
 	public $setup = array();
 	public $data = '';
 	public $journeys = array();
@@ -108,6 +113,13 @@ class DBJourneyXMLParser {
 	public $remove_from_output = '';
 	public $replace_in_output = '';
 	public $rawJSON;
+
+	/**
+	 * @param bool $debug
+	 */
+	public function setDebug( $debug ) {
+		$this->debug = $debug;
+	}
 
 	/**
 	 * @param bool $display_supported
@@ -124,7 +136,7 @@ class DBJourneyXMLParser {
 	}
 
 	/**
-	 * DBJourneyXMLParser
+	 * AlexaAbfahrtenSkill
 	 */
 	public function __construct() {
 
@@ -154,82 +166,84 @@ class DBJourneyXMLParser {
 
 	public function validateRequest() {
 
+		if ( $this->debug == false ) {
 
-		$EchoReqObj = $this->EchoReqObj;
-		$rawJSON    = $this->rawJSON;
-		$SETUP      = $this->setup;
+			$EchoReqObj = $this->EchoReqObj;
+			$rawJSON    = $this->rawJSON;
+			$SETUP      = $this->setup;
 
-		if ( $EchoReqObj == '' ) {
-			$this->ThrowRequestError( 400, "Result is empty." );
-		}
+			if ( $EchoReqObj == '' ) {
+				$this->ThrowRequestError( 400, "Result is empty." );
+			}
 
-		// Check if Amazon is the Origin
-		if ( is_array( $SETUP['validIP'] ) ) {
-			$isAllowedHost = false;
-			foreach ( $SETUP['validIP'] as $ip ) {
-				if ( stristr( $_SERVER['REMOTE_ADDR'], $ip ) ) {
-					$isAllowedHost = true;
-					break;
+			// Check if Amazon is the Origin
+			if ( is_array( $SETUP['validIP'] ) ) {
+				$isAllowedHost = false;
+				foreach ( $SETUP['validIP'] as $ip ) {
+					if ( stristr( $_SERVER['REMOTE_ADDR'], $ip ) ) {
+						$isAllowedHost = true;
+						break;
+					}
 				}
+				if ( $isAllowedHost == false ) {
+					$this->$this->ThrowRequestError( 400, "Forbidden, your Host is not allowed to make this request!" );
+				}
+				unset( $isAllowedHost );
 			}
-			if ( $isAllowedHost == false ) {
-				$this->$this->ThrowRequestError( 400, "Forbidden, your Host is not allowed to make this request!" );
-			}
-			unset( $isAllowedHost );
-		}
 
 // Check if correct requestId
-		if ( strtolower( $EchoReqObj->session->application->applicationId ) != strtolower( $SETUP['ApplicationID'] ) || empty( $EchoReqObj->session->application->applicationId ) ) {
-			$this->ThrowRequestError( 400, "Forbidden, unkown Application ID!" );
-		}
+			if ( strtolower( $EchoReqObj->session->application->applicationId ) != strtolower( $SETUP['ApplicationID'] ) || empty( $EchoReqObj->session->application->applicationId ) ) {
+				$this->ThrowRequestError( 400, "Forbidden, unkown Application ID!" );
+			}
 // Check SSL Signature Chain
-		if ( $SETUP['CheckSignatureChain'] == true ) {
-			if ( preg_match( "/https:\/\/s3.amazonaws.com(\:443)?\/echo.api\/*/i", $_SERVER['HTTP_SIGNATURECERTCHAINURL'] ) == false ) {
-				$this->ThrowRequestError( 400, "Forbidden, unkown SSL Chain Origin!" );
-			}
-			// PEM Certificate signing Check
-			// First we try to cache the pem file locally
-			$local_pem_hash_file = sys_get_temp_dir() . '/' . hash( "sha256", $_SERVER['HTTP_SIGNATURECERTCHAINURL'] ) . ".pem";
-			if ( ! file_exists( $local_pem_hash_file ) ) {
-				file_put_contents( $local_pem_hash_file, file_get_contents( $_SERVER['HTTP_SIGNATURECERTCHAINURL'] ) );
-			}
-			$local_pem = file_get_contents( $local_pem_hash_file );
-			if ( openssl_verify( $rawJSON, base64_decode( $_SERVER['HTTP_SIGNATURE'] ), $local_pem ) !== 1 ) {
-				$this->ThrowRequestError( 400, "Forbidden, failed to verify SSL Signature!" );
-			}
-			// Parse the Certificate for additional Checks
-			$cert = openssl_x509_parse( $local_pem );
-			if ( empty( $cert ) ) {
-				$this->ThrowRequestError( 400, "Certificate parsing failed!" );
-			}
-			// SANs Check
-			if ( stristr( $cert['extensions']['subjectAltName'], 'echo-api.amazon.com' ) != true ) {
-				$this->ThrowRequestError( 400, "Forbidden! Certificate SANs Check failed!" );
-			}
-			// Check Certificate Valid Time
-			if ( $cert['validTo_time_t'] < time() ) {
-				$this->ThrowRequestError( 400, "Forbidden! Certificate no longer Valid!" );
-				// Deleting locally cached file to fetch a new at next req
-				if ( file_exists( $local_pem_hash_file ) ) {
-					unlink( $local_pem_hash_file );
+			if ( $SETUP['CheckSignatureChain'] == true ) {
+				if ( preg_match( "/https:\/\/s3.amazonaws.com(\:443)?\/echo.api\/*/i", $_SERVER['HTTP_SIGNATURECERTCHAINURL'] ) == false ) {
+					$this->ThrowRequestError( 400, "Forbidden, unkown SSL Chain Origin!" );
 				}
+				// PEM Certificate signing Check
+				// First we try to cache the pem file locally
+				$local_pem_hash_file = sys_get_temp_dir() . '/' . hash( "sha256", $_SERVER['HTTP_SIGNATURECERTCHAINURL'] ) . ".pem";
+				if ( ! file_exists( $local_pem_hash_file ) ) {
+					file_put_contents( $local_pem_hash_file, file_get_contents( $_SERVER['HTTP_SIGNATURECERTCHAINURL'] ) );
+				}
+				$local_pem = file_get_contents( $local_pem_hash_file );
+				if ( openssl_verify( $rawJSON, base64_decode( $_SERVER['HTTP_SIGNATURE'] ), $local_pem ) !== 1 ) {
+					$this->ThrowRequestError( 400, "Forbidden, failed to verify SSL Signature!" );
+				}
+				// Parse the Certificate for additional Checks
+				$cert = openssl_x509_parse( $local_pem );
+				if ( empty( $cert ) ) {
+					$this->ThrowRequestError( 400, "Certificate parsing failed!" );
+				}
+				// SANs Check
+				if ( stristr( $cert['extensions']['subjectAltName'], 'echo-api.amazon.com' ) != true ) {
+					$this->ThrowRequestError( 400, "Forbidden! Certificate SANs Check failed!" );
+				}
+				// Check Certificate Valid Time
+				if ( $cert['validTo_time_t'] < time() ) {
+					$this->ThrowRequestError( 400, "Forbidden! Certificate no longer Valid!" );
+					// Deleting locally cached file to fetch a new at next req
+					if ( file_exists( $local_pem_hash_file ) ) {
+						unlink( $local_pem_hash_file );
+					}
+				}
+				// Cleanup
+				unset( $local_pem_hash_file, $cert, $local_pem );
 			}
-			// Cleanup
-			unset( $local_pem_hash_file, $cert, $local_pem );
-		}
 // Check Valid Time
-		if ( time() - strtotime( $EchoReqObj->request->timestamp ) > $SETUP['ReqValidTime'] ) {
-			$this->ThrowRequestError( 400, "Request Timeout! Request timestamp is to old." );
-		}
+			if ( time() - strtotime( $EchoReqObj->request->timestamp ) > $SETUP['ReqValidTime'] ) {
+				$this->ThrowRequestError( 400, "Request Timeout! Request timestamp is to old." );
+			}
 // Check AWS Account bound, if this is set only a specific aws account can run the skill
-		if ( ! empty( $SETUP['AWSaccount'] ) ) {
-			if ( empty( $EchoReqObj->session->user->userId ) || $EchoReqObj->session->user->userId != $SETUP['AWSaccount'] ) {
-				$this->ThrowRequestError( 400, "Forbidden! Access is limited to one configured AWS Account." );
+			if ( ! empty( $SETUP['AWSaccount'] ) ) {
+				if ( empty( $EchoReqObj->session->user->userId ) || $EchoReqObj->session->user->userId != $SETUP['AWSaccount'] ) {
+					$this->ThrowRequestError( 400, "Forbidden! Access is limited to one configured AWS Account." );
+				}
 			}
 		}
 	}
 
-	public function getAlexaJSON() {
+	public function getAlexaJSONResponse() {
 
 		$speech = 'Ich habe keine Informationen zu ' . $this->journeys[0]->product;
 		$text1  = '';
@@ -347,16 +361,23 @@ class DBJourneyXMLParser {
 
 	public function getXML() {
 
-		if ( DBJourneyXMLParser::CACHE ) {
-			$filename                = substr( md5( strtolower( $this->origin ) ), 0, 12 ) . '.xml';
-			$local_cache_file        = sys_get_temp_dir() . '/' . $filename;
-			$local_timestamp         = sys_get_temp_dir() . '/ts_' . $filename;
-			$now_timestamp           = time();
-			$last_saved_timestamp    = file_get_contents( $local_timestamp );
+		if ( AlexaAbfahrtenSkill::CACHE_IN_MINUTES > 0 ) {
+			$filename         = substr( md5( strtolower( $this->origin ) ), 0, 12 ) . 'e.xml';
+			$local_cache_file = sys_get_temp_dir() . '/' . $filename;
+			$local_timestamp  = sys_get_temp_dir() . '/ts_' . $filename;
+			$now_timestamp    = time();
+
+			if ( file_exists( $local_timestamp ) ) {
+				$last_saved_timestamp = file_get_contents( $local_timestamp );
+			} else {
+				file_put_contents( $local_timestamp, $now_timestamp );
+				$last_saved_timestamp = $now_timestamp;
+			}
+
 			$diff_minutes_last_saved = round( ( $now_timestamp - $last_saved_timestamp ) / 60 );
 
-			if ( ! file_exists( $local_cache_file ) OR $diff_minutes_last_saved > 5 ) {
-				$url  = DBJourneyXMLParser::BAHN_ENDPOINT_URL . urlencode( $this->origin );
+			if ( ! file_exists( $local_cache_file ) OR $diff_minutes_last_saved > AlexaAbfahrtenSkill::CACHE_IN_MINUTES ) {
+				$url  = AlexaAbfahrtenSkill::BAHN_ENDPOINT_URL . urlencode( $this->origin );
 				$data = file_get_contents( $url );
 				file_put_contents( $local_cache_file, $data );
 				file_put_contents( $local_timestamp, $now_timestamp );
@@ -364,7 +385,7 @@ class DBJourneyXMLParser {
 				$data = file_get_contents( $local_cache_file );
 			}
 		} else {
-			$url  = DBJourneyXMLParser::BAHN_ENDPOINT_URL . urlencode( $this->origin );
+			$url  = AlexaAbfahrtenSkill::BAHN_ENDPOINT_URL . urlencode( $this->origin );
 			$data = file_get_contents( $url );
 		}
 
