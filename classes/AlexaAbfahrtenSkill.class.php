@@ -95,7 +95,7 @@ class AlexaAbfahrtenSkill {
 				$this->ThrowRequestError( 400, "Result is empty." );
 			}
 
-// Check if Amazon is the Origin
+			// Check if Amazon is the Origin
 			if ( is_array( $SETUP['validIP'] ) ) {
 				$isAllowedHost = false;
 				foreach ( $SETUP['validIP'] as $ip ) {
@@ -110,17 +110,17 @@ class AlexaAbfahrtenSkill {
 				unset( $isAllowedHost );
 			}
 
-// Check if correct requestId
+			// Check if correct requestId
 			if ( strtolower( $EchoReqObj->session->application->applicationId ) != strtolower( $SETUP['ApplicationID'] ) || empty( $EchoReqObj->session->application->applicationId ) ) {
 				$this->ThrowRequestError( 400, "Forbidden, unkown Application ID!" );
 			}
-// Check SSL Signature Chain
+			// Check SSL Signature Chain
 			if ( $SETUP['CheckSignatureChain'] == true ) {
 				if ( preg_match( "/https:\/\/s3.amazonaws.com(\:443)?\/echo.api\/*/i", $_SERVER['HTTP_SIGNATURECERTCHAINURL'] ) == false ) {
 					$this->ThrowRequestError( 400, "Forbidden, unkown SSL Chain Origin!" );
 				}
-// PEM Certificate signing Check
-// First we try to cache the pem file locally
+			// PEM Certificate signing Check
+			// First we try to cache the pem file locally
 				$local_pem_hash_file = sys_get_temp_dir() . '/' . hash( "sha256", $_SERVER['HTTP_SIGNATURECERTCHAINURL'] ) . ".pem";
 				if ( ! file_exists( $local_pem_hash_file ) ) {
 					file_put_contents( $local_pem_hash_file, file_get_contents( $_SERVER['HTTP_SIGNATURECERTCHAINURL'] ) );
@@ -129,31 +129,31 @@ class AlexaAbfahrtenSkill {
 				if ( openssl_verify( $rawJSON, base64_decode( $_SERVER['HTTP_SIGNATURE'] ), $local_pem ) !== 1 ) {
 					$this->ThrowRequestError( 400, "Forbidden, failed to verify SSL Signature!" );
 				}
-// Parse the Certificate for additional Checks
+				// Parse the Certificate for additional Checks
 				$cert = openssl_x509_parse( $local_pem );
 				if ( empty( $cert ) ) {
 					$this->ThrowRequestError( 400, "Certificate parsing failed!" );
 				}
-// SANs Check
+				// SANs Check
 				if ( stristr( $cert['extensions']['subjectAltName'], 'echo-api.amazon.com' ) != true ) {
 					$this->ThrowRequestError( 400, "Forbidden! Certificate SANs Check failed!" );
 				}
-// Check Certificate Valid Time
+				// Check Certificate Valid Time
 				if ( $cert['validTo_time_t'] < time() ) {
 					$this->ThrowRequestError( 400, "Forbidden! Certificate no longer Valid!" );
-// Deleting locally cached file to fetch a new at next req
+				// Deleting locally cached file to fetch a new at next req
 					if ( file_exists( $local_pem_hash_file ) ) {
 						unlink( $local_pem_hash_file );
 					}
 				}
-// Cleanup
+				// Cleanup
 				unset( $local_pem_hash_file, $cert, $local_pem );
 			}
-// Check Valid Time
+			// Check Valid Time
 			if ( time() - strtotime( $EchoReqObj->request->timestamp ) > $SETUP['ReqValidTime'] ) {
 				$this->ThrowRequestError( 400, "Request Timeout! Request timestamp is to old." );
 			}
-// Check AWS Account bound, if this is set only a specific aws account can run the skill
+			// Check AWS Account bound, if this is set only a specific aws account can run the skill
 			if ( ! empty( $SETUP['AWSaccount'] ) ) {
 				if ( empty( $EchoReqObj->session->user->userId ) || $EchoReqObj->session->user->userId != $SETUP['AWSaccount'] ) {
 					$this->ThrowRequestError( 400, "Forbidden! Access is limited to one configured AWS Account." );
@@ -165,39 +165,49 @@ class AlexaAbfahrtenSkill {
 	public function getAlexaJSONResponse() {
 
 		$speech = 'Ich habe keine Informationen zu ' . $this->journeys[0]->product;
-		$text1  = '';
-		$text2  = '';
+
 		$title  = $this->origin . ' in Richtung ' . $this->destination;
-
-		$journeys_num = count( $this->journeys );
-
-
-		switch ( true ) {
-			case $journeys_num == 1:
-				$speech = 'In ' . $this->journeys[0]->getRelativeMinutes() . ' Minuten fährt die nächste ' . $this->journeys[0]->product . ' ab ' . $this->origin . ' in Richtung ' . $this->destination . '.';
-				$text1  = $this->journeys[0]->product . ' fährt in ' . $this->journeys[0]->getRelativeMinutes() . ' Minuten';
-				break;
-			case $journeys_num >= 1:
-				$speech = 'In ' . $this->journeys[0]->getRelativeMinutes() . ' Minuten fährt die ' . $this->journeys[0]->product . ' ab ' . $this->origin . ' in Richtung ' . $this->destination . '. In ' . $this->journeys[1]->getRelativeMinutes() . ' Minuten kommt die nächste ' . $this->journeys[1]->product;
-				$text1  = '<font size="7">In <b>' . $this->journeys[0]->getRelativeMinutes() . '</b> Minuten</font>';
-				$text2  = '<font size="7">In <b>' . $this->journeys[1]->getRelativeMinutes() . '</b> Minuten</font>';
-				break;
-		}
-
-		$speech = str_replace( $this->remove_from_output, "", $speech );
-		$text1  = str_replace( $this->remove_from_output, "", $text1 );
-		$text2  = str_replace( $this->remove_from_output, "", $text2 );
 		$title  = str_replace( $this->remove_from_output, "", $title );
+		$title  = str_replace( $this->replace_in_output[0], $this->replace_in_output[1], $title );
 
+		$speech = 'In ' . $this->journeys[0]->getRelativeMinutes() . ' Minuten fährt die ' . $this->journeys[0]->product . ' ab ' . $this->origin . ' in Richtung ' . $this->destination . '.';
 
-		if ( $this->replace_in_output != '' ) {
-			$speech = str_replace( $this->replace_in_output[0], $this->replace_in_output[1], $speech );
-			$text1  = str_replace( $this->replace_in_output[0], $this->replace_in_output[1], $text1 );
-			$text2  = str_replace( $this->replace_in_output[0], $this->replace_in_output[1], $text2 );
-			$title  = str_replace( $this->replace_in_output[0], $this->replace_in_output[1], $title );
+		if(count( $this->journeys ) > 1) {
+			$speech = $speech . ' In ' . $this->journeys[1]->getRelativeMinutes() . ' Minuten kommt die nächste ' . $this->journeys[1]->product;
 		}
 
-		header( "Content-type: application/json; charset=utf-8" );
+		$speech = str_replace( $this->replace_in_output[0], $this->replace_in_output[1], $speech );
+		$speech = str_replace( $this->remove_from_output, "", $speech );
+
+		$items = array();
+		$count = 0;
+
+		foreach ( $this->journeys as $journey ) {
+
+			$text = '<font size="7">In <b>' . $journey->getRelativeMinutes() . '</b> Minuten</font>';
+			$text = str_replace( $this->remove_from_output, "", $text );
+			$text = str_replace( $this->replace_in_output[0], $this->replace_in_output[1], $text );
+
+			$items[] = [
+				'token'       => 'departure-item-'. $count,
+				'image'       => [
+					'contentDescription' => 'Tram',
+					'sources'            => array([
+						'url' => $this->list_image_url,
+					]),
+				],
+				'textContent' => [
+					'primaryText' => [
+						'text' => $text,
+						'type' => 'RichText',
+					],
+				]
+			];
+
+			$count++;
+
+		}
+
 		$responseArray = [
 			'version'  => '1.0',
 			'response' => [
@@ -205,7 +215,6 @@ class AlexaAbfahrtenSkill {
 					'type' => 'PlainText',
 					'text' => $speech,
 					'ssml' => null
-
 				],
 
 				'shouldEndSession' => true
@@ -219,49 +228,19 @@ class AlexaAbfahrtenSkill {
 					'type'      => 'ListTemplate1',
 					'token'     => 'departure-list',
 					'title'     => $title,
-					'listItems' => array(
-						[
-							'token'       => 'departure-item-1',
-							'image'       => [
-								'contentDescription' => 'Tram',
-								'sources' => array([
-									'url' => $this->list_image_url,
-								]),
-							],
-							'textContent' => [
-								'primaryText' => [
-									'text' => $text1,
-									'type' => 'RichText'
-								],
-							],
-						],
-						[
-							'token'         => 'departure-item-2',
-							'image'       => [
-								'contentDescription' => 'Tram',
-								'sources' => array([
-									'url' => $this->list_image_url,
-								]),
-							],
-							'textContent' => [
-								'primaryText' => [
-									'text' => $text2,
-									'type' => 'RichText'
-								],
-							],
-						]
-					),
+					'listItems' => $items,
 				],
 			]
 		);
 
-		if ( $this->display_supported OR $this->debug == true) {
+		if ( $this->display_supported OR $this->debug == true ) {
 			$responseArray['response']['directives'] = $directives;
 		}
 
-		header( 'Content-Type: application/json' );
+		header( "Content-type: application/json; charset=utf-8" );
+		$json = json_encode( $responseArray, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT );
 
-		return json_encode( $responseArray, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT );
+		return $json;
 	}
 
 	public function renderJourneys() {#
