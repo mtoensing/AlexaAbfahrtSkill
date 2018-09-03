@@ -164,15 +164,15 @@ class AlexaAbfahrtenSkill {
 
 	public function getAlexaJSONResponse() {
 
-		$speech = 'Ich habe keine Informationen zu ' . $this->journeys[0]->product;
-
 		$title  = $this->origin . ' in Richtung ' . $this->destination;
 		$title  = str_replace( $this->remove_from_output, "", $title );
 		$title  = str_replace( $this->replace_in_output[0], $this->replace_in_output[1], $title );
 
 		$speech = 'In ' . $this->journeys[0]->getRelativeMinutes() . ' Minuten fährt die ' . $this->journeys[0]->product . ' ab ' . $this->origin . ' in Richtung ' . $this->destination . '.';
 
-		if(count( $this->journeys ) > 1) {
+		if(count( $this->journeys ) == 0) {
+			$speech = 'Ich habe keine Informationen zu ' . $this->journeys[0]->product;
+		} elseif (count( $this->journeys ) > 1) {
 			$speech = $speech . ' In ' . $this->journeys[1]->getRelativeMinutes() . ' Minuten kommt die nächste ' . $this->journeys[1]->product;
 		}
 
@@ -184,9 +184,7 @@ class AlexaAbfahrtenSkill {
 
 		foreach ( $this->journeys as $journey ) {
 
-			$text = '<font size="7">In <b>' . $journey->getRelativeMinutes() . '</b> Minuten</font>';
-			$text = str_replace( $this->remove_from_output, "", $text );
-			$text = str_replace( $this->replace_in_output[0], $this->replace_in_output[1], $text );
+			$text = 'In <b>' . $journey->getRelativeMinutes() . '</b> Minuten';
 
 			$items[] = [
 				'token'       => 'departure-item-'. $count,
@@ -397,7 +395,6 @@ class AlexaAbfahrtenSkill {
 			if ( $journey->getRelativeMinutes() > 1 ) {
 				$this->setJourneys( $journey );
 			}
-
 		}
 	}
 }
