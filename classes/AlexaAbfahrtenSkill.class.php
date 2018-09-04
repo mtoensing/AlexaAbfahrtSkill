@@ -168,12 +168,14 @@ class AlexaAbfahrtenSkill {
 		$title  = str_replace( $this->remove_from_output, "", $title );
 		$title  = str_replace( $this->replace_in_output[0], $this->replace_in_output[1], $title );
 
-		$speech = 'In ' . $this->journeys[0]->getRelativeMinutes() . ' Minuten fährt die ' . $this->journeys[0]->product . ' ab ' . $this->origin . ' in Richtung ' . $this->destination . '.';
+		if(count( $this->journeys ) > 0) {
+			$speech = 'In ' . $this->journeys[0]->getRelativeMinutes() . ' Minuten fährt die ' . $this->journeys[0]->product . ' ab ' . $this->origin . ' in Richtung ' . $this->destination . '.';
+		}
 
 		if(count( $this->journeys ) == 0) {
-			$speech = 'Ich habe keine Informationen zu ' . $this->journeys[0]->product;
+			$speech = 'Ich habe aktuell keine Informationen zu Abfahrten ' . $this->origin;
 		} elseif (count( $this->journeys ) > 1) {
-			$speech = $speech . ' In ' . $this->journeys[1]->getRelativeMinutes() . ' Minuten kommt die nächste ' . $this->journeys[1]->product;
+			$speech = $speech . ' Die nächste ' . $this->journeys[1]->product . ' kommt in ' . $this->journeys[1]->getRelativeMinutes();
 		}
 
 		$speech = str_replace( $this->replace_in_output[0], $this->replace_in_output[1], $speech );
@@ -235,7 +237,9 @@ class AlexaAbfahrtenSkill {
 			$responseArray['response']['directives'] = $directives;
 		}
 
+
 		header( "Content-type: application/json; charset=utf-8" );
+
 		$json = json_encode( $responseArray, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT );
 
 		return $json;
@@ -278,7 +282,7 @@ class AlexaAbfahrtenSkill {
 
 	public function getXML() {
 
-		if ( AlexaAbfahrtenSkill::CACHE_IN_MINUTES > 0 ) {
+		if ( AlexaAbfahrtenSkill::CACHE_IN_MINUTES >= 0 ) {
 			$filename         = substr( md5( strtolower( $this->origin ) ), 0, 12 ) . '.xml';
 			$local_cache_file = sys_get_temp_dir() . '/' . $filename;
 			$local_timestamp  = sys_get_temp_dir() . '/ts_' . $filename;
@@ -304,6 +308,7 @@ class AlexaAbfahrtenSkill {
 		} else {
 			$url  = AlexaAbfahrtenSkill::BAHN_ENDPOINT_URL . urlencode( $this->origin );
 			$data = file_get_contents( $url );
+
 		}
 
 		if ( $data === false ) {
@@ -321,7 +326,7 @@ class AlexaAbfahrtenSkill {
 	 * fix BAHN XML
 	 */
 	public function convertBAHNXML() {
-		$xml                = '<?xml version="1.0" encoding="UTF-8" standalone="no" ?><Journeys>' . $this->data . '</Journeys>';
+		$xml                = '<?xml version="1.0" encoding="ISO-8859-1" standalone="no" ?><Journeys>' . $this->data . '</Journeys>';
 		$this->journeys_xml = simplexml_load_string( $xml );
 	}
 
