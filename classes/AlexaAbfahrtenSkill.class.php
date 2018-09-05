@@ -119,8 +119,8 @@ class AlexaAbfahrtenSkill {
 				if ( preg_match( "/https:\/\/s3.amazonaws.com(\:443)?\/echo.api\/*/i", $_SERVER['HTTP_SIGNATURECERTCHAINURL'] ) == false ) {
 					$this->ThrowRequestError( 400, "Forbidden, unkown SSL Chain Origin!" );
 				}
-			// PEM Certificate signing Check
-			// First we try to cache the pem file locally
+				// PEM Certificate signing Check
+				// First we try to cache the pem file locally
 				$local_pem_hash_file = sys_get_temp_dir() . '/' . hash( "sha256", $_SERVER['HTTP_SIGNATURECERTCHAINURL'] ) . ".pem";
 				if ( ! file_exists( $local_pem_hash_file ) ) {
 					file_put_contents( $local_pem_hash_file, file_get_contents( $_SERVER['HTTP_SIGNATURECERTCHAINURL'] ) );
@@ -141,7 +141,7 @@ class AlexaAbfahrtenSkill {
 				// Check Certificate Valid Time
 				if ( $cert['validTo_time_t'] < time() ) {
 					$this->ThrowRequestError( 400, "Forbidden! Certificate no longer Valid!" );
-				// Deleting locally cached file to fetch a new at next req
+					// Deleting locally cached file to fetch a new at next req
 					if ( file_exists( $local_pem_hash_file ) ) {
 						unlink( $local_pem_hash_file );
 					}
@@ -164,18 +164,18 @@ class AlexaAbfahrtenSkill {
 
 	public function getAlexaJSONResponse() {
 
-		$title  = $this->origin . ' in Richtung ' . $this->destination;
-		$title  = str_replace( $this->remove_from_output, "", $title );
-		$title  = str_replace( $this->replace_in_output[0], $this->replace_in_output[1], $title );
+		$title = $this->origin . ' in Richtung ' . $this->destination;
+		$title = str_replace( $this->remove_from_output, "", $title );
+		$title = str_replace( $this->replace_in_output[0], $this->replace_in_output[1], $title );
 
-		if(count( $this->journeys ) > 0) {
+		if ( count( $this->journeys ) > 0 ) {
 			$speech = 'In ' . $this->journeys[0]->getRelativeMinutes() . ' Minuten fährt die ' . $this->journeys[0]->product . ' ab ' . $this->origin . ' in Richtung ' . $this->destination . '.';
 		}
 
-		if(count( $this->journeys ) == 0) {
+		if ( count( $this->journeys ) == 0 ) {
 			$speech = 'Ich habe aktuell keine Informationen zu Abfahrten ' . $this->origin;
-		} elseif (count( $this->journeys ) > 1) {
-			$speech = $speech . ' Die nächste ' . $this->journeys[1]->product . ' kommt in ' . $this->journeys[1]->getRelativeMinutes();
+		} elseif ( count( $this->journeys ) > 1 ) {
+			$speech = $speech . ' Die nächste ' . $this->journeys[1]->product . ' kommt in ' . $this->journeys[1]->getRelativeMinutes() . ' Minuten.';
 		}
 
 		$speech = str_replace( $this->replace_in_output[0], $this->replace_in_output[1], $speech );
@@ -189,12 +189,14 @@ class AlexaAbfahrtenSkill {
 			$text = 'In <b>' . $journey->getRelativeMinutes() . '</b> Minuten';
 
 			$items[] = [
-				'token'       => 'departure-item-'. $count,
+				'token'       => 'departure-item-' . $count,
 				'image'       => [
 					'contentDescription' => 'Tram',
-					'sources'            => array([
-						'url' => $this->list_image_url,
-					]),
+					'sources'            => array(
+						[
+							'url' => $this->list_image_url,
+						]
+					),
 				],
 				'textContent' => [
 					'primaryText' => [
@@ -204,7 +206,7 @@ class AlexaAbfahrtenSkill {
 				]
 			];
 
-			$count++;
+			$count ++;
 
 		}
 
@@ -233,7 +235,7 @@ class AlexaAbfahrtenSkill {
 			]
 		);
 
-		if ( $this->display_supported OR $this->debug == true ) {
+		if ( ( $this->display_supported OR $this->debug == true ) AND count( $items ) > 0 ) {
 			$responseArray['response']['directives'] = $directives;
 		}
 
