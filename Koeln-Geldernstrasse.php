@@ -1,8 +1,8 @@
 <?php
 
-spl_autoload_register(function ($class_name) {
+spl_autoload_register( function ( $class_name ) {
 	include 'classes/' . $class_name . '.class.php';
-});
+} );
 
 
 $AlexaAbfahrtenSkill = new AlexaAbfahrtenSkill();
@@ -22,14 +22,13 @@ $AlexaAbfahrtenSkill->setup = array(
 	// We use german Echo so we want our date output to be german
 );
 
-$AlexaAbfahrtenSkill->getRequest();
-
-$AlexaAbfahrtenSkill->replace_in_output  = array( array('  ','STR','Köln',', '), array(' ','Linie ','') );
+$AlexaAbfahrtenSkill->replace_in_output = array(
+	array( '  ', 'STR', 'Köln', ', ' ),
+	array( ' ', 'Linie ', '' )
+);
 $AlexaAbfahrtenSkill->setOrigin( "Köln Geldernstr./Parkgürtel" );
 $AlexaAbfahrtenSkill->setDestination( "Klettenberg Sülzgürtel, Köln" );
 $AlexaAbfahrtenSkill->setShowDestinationOnly( true );
-$AlexaAbfahrtenSkill->getXML();
-$AlexaAbfahrtenSkill->fillJourneys();
 
 echo $AlexaAbfahrtenSkill->getAlexaJSONResponse();
 

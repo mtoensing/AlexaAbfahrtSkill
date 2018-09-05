@@ -55,6 +55,7 @@ class AlexaAbfahrtenSkill {
 		if ( isset( $_GET["debug"] ) AND htmlspecialchars( $_GET["debug"] ) == true ) {
 			$this->setDebug( true );
 		}
+
 	}
 
 	public function getRequest() {
@@ -68,6 +69,8 @@ class AlexaAbfahrtenSkill {
 		}
 
 		$this->validateRequest();
+		$this->getXML();
+		$this->fillJourneys();
 	}
 
 	public function ThrowRequestError( $code = 400, $msg = 'Bad Request' ) {
@@ -163,6 +166,8 @@ class AlexaAbfahrtenSkill {
 	}
 
 	public function getAlexaJSONResponse() {
+
+		$this->getRequest();
 
 		$title = $this->origin . ' in Richtung ' . $this->destination;
 		$title = str_replace( $this->remove_from_output, "", $title );
