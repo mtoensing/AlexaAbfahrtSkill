@@ -5,7 +5,19 @@ spl_autoload_register( function ( $class_name ) {
 } );
 
 
+
+$DBreiseplanner = new DBreiseplanner();
+$DBreiseplanner->cache_in_minutes = 0;
+$DBreiseplanner->setOrigin( "Hannover, Kafkastrasse" );
+$DBreiseplanner->setDestination( "Wettbergen, Hannover" );
+$DBreiseplanner->getXML();
+$DBreiseplanner->fillJourneys();
+$journeys = $DBreiseplanner->getJourneys();
+
+
 $AlexaAbfahrtenSkill = new AlexaAbfahrtenSkill();
+
+$AlexaAbfahrtenSkill->setJourneys($journeys);
 
 $AlexaAbfahrtenSkill->setup = array(
 	'ApplicationID' => 'amzn1.ask.skill.6f5d7f58-b0c7-4ef4-96c8-dd28418c96ba',
@@ -21,15 +33,13 @@ $AlexaAbfahrtenSkill->setup = array(
 	'LC_TIME' => "de_DE"
 	// We use german Echo so we want our date output to be german
 );
-
+$AlexaAbfahrtenSkill->validateRequest();
 
 $AlexaAbfahrtenSkill->replace_in_output  = array(
 	array( 'Hannover, ', ', Hannover', 'STB' ),
 	array( '', '', 'Stadtbahn ' )
 );
-$AlexaAbfahrtenSkill->setOrigin( "Hannover, Kafkastrasse" );
-$AlexaAbfahrtenSkill->setDestination( "Wettbergen, Hannover" );
-$AlexaAbfahrtenSkill->setShowDestinationOnly( true );
+
 
 echo $AlexaAbfahrtenSkill->getAlexaJSONResponse();
 

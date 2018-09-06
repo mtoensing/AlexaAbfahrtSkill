@@ -10,6 +10,7 @@
 class Journey {
 
 	public $product = '';
+	public $origin = '';
 	public $destination = '';
 	public $arrival_timestamp = '';
 	public $delay = '';
