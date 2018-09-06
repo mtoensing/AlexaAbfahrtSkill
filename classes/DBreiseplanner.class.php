@@ -192,7 +192,6 @@ class DBreiseplanner {
 
 			$arrival_timestamp = strtotime( $journey_xml['fpTime'] );
 			$journey->setArrivalTimestamp( $arrival_timestamp );
-
 			$destination = $journey_xml['targetLoc']->__toString();
 			$journey->setDestination( $destination );
 

@@ -37,6 +37,7 @@ class AlexaAbfahrtenSkill
 
     public function __construct($origin, $destination, $application_id)
     {
+        $this->destination = $destination;
         $this->setup['ApplicationID'] = $application_id;
         $DBreiseplanner = new DBreiseplanner($origin,$destination);
         $DBreiseplanner->cache_in_minutes = 0;
@@ -148,7 +149,7 @@ class AlexaAbfahrtenSkill
                 if ( openssl_verify( $rawJSON, base64_decode( $_SERVER['HTTP_SIGNATURE'] ), $local_pem ) !== 1 ) {
                     $this->ThrowRequestError( 400, "Forbidden, failed to verify SSL Signature!" );
                 }
-                
+
                 // Parse the Certificate for additional Checks
                 $cert = openssl_x509_parse($local_pem);
                 if (empty($cert)) {
