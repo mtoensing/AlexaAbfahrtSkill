@@ -14,11 +14,19 @@ class AlexaAbfahrtenSkill {
 	public $journeys = array();
 	public $setup = array();
 	public $destination = '';
+	public $rawJSON;
 	public $destination_only;
 	public $EchoReqObj = '';
 	public $display_supported = false;
 	public $remove_from_output = '';
 	public $replace_in_output = '';
+
+    public function __construct() {
+        if ( isset( $_GET["debug"] ) AND htmlspecialchars( $_GET["debug"] ) == true ) {
+            $this->setDebug( true );
+        }
+
+    }
 
 	/**
 	 * @param bool $debug
@@ -55,6 +63,17 @@ class AlexaAbfahrtenSkill {
 		 * Thanks to @solariz for the amazon certificate authentication
 		 * https://gist.github.com/solariz/a7b7b09e46303223523bba2b66b9b341
 		 */
+
+
+            $rawJSON          = file_get_contents( 'php://input' );
+            $this->rawJSON    = $rawJSON;
+            $EchoReqObj       = json_decode( $rawJSON );
+            $this->EchoReqObj = $EchoReqObj;
+
+            if ( isset( $EchoReqObj->context->System->device->supportedInterfaces->Display ) ) {
+                $this->setDisplaySupported( true );
+            }
+
 
 		if ( $this->debug == false ) {
 
@@ -224,11 +243,6 @@ class AlexaAbfahrtenSkill {
 		return $json;
 	}
 
-	public function renderJourneys() {#
-		foreach ( $this->journeys as $journey ) {
-			echo $journey->product . ' - In ' . $journey->getRelativeMinutes() . ' Min. - ' . $journey->destination . '<br>';
-		}
-	}
 }
 
 ?>

@@ -34,12 +34,6 @@ class DBreiseplanner {
 		return $this->journeys;
 	}
 
-	/**
-	 * @param bool $display_supported
-	 */
-	public function setDisplaySupported( $display_supported ) {
-		$this->display_supported = $display_supported;
-	}
 
 	/**
 	 * @param mixed $filter_destination_only
@@ -53,21 +47,6 @@ class DBreiseplanner {
 		if ( isset( $_GET["debug"] ) AND htmlspecialchars( $_GET["debug"] ) == true ) {
 			$this->setDebug( true );
 		}
-
-	}
-
-	public function getRequest() {
-		$rawJSON          = file_get_contents( 'php://input' );
-		$this->rawJSON    = $rawJSON;
-		$EchoReqObj       = json_decode( $rawJSON );
-		$this->EchoReqObj = $EchoReqObj;
-
-		if ( isset( $EchoReqObj->context->System->device->supportedInterfaces->Display ) ) {
-			$this->setDisplaySupported( true );
-		}
-
-		$this->getXML();
-		$this->fillJourneys();
 	}
 
 	/**
