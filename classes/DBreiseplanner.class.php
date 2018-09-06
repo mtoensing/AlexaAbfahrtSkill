@@ -43,7 +43,12 @@ class DBreiseplanner {
 	}
 
 
-	public function __construct() {
+	public function __construct($origin, $destination) {
+
+	    $this->setOrigin($origin);
+
+	    $this->setDestination($destination);
+
 		if ( isset( $_GET["debug"] ) AND htmlspecialchars( $_GET["debug"] ) == true ) {
 			$this->setDebug( true );
 		}
