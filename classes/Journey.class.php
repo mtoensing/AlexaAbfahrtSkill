@@ -16,7 +16,6 @@ class Journey {
 	public $delay = 0;
 	public $realtime;
 
-
 	public function getArrivalFullDate() {
 		$arrival_date = date( 'l dS \o\f F Y H:i:s', $this->arrival_timestamp );
 
@@ -30,8 +29,6 @@ class Journey {
     {
         return $this->delay;
     }
-
-
 
 	public function getRelativeMinutes() {
 		$timestampt_diff = $this->arrival_timestamp - time();

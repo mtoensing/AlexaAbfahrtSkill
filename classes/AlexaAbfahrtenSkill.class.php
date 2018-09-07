@@ -11,8 +11,6 @@ class AlexaAbfahrtenSkill
 {
 
     public $list_image_url = "https://traintime.marc.tv/assets/tram-small.png";
-    public $debug = false;
-    public $journeys = array();
     public $setup = array(
         'ApplicationID' => 'amzn1.ask.skill.8228c964-a30c-41af-b817-948bd6c7903c',
         // From your ALEXA developer console like: 'amzn1.ask.skill.45c11234-123a-1234-ffaa-1234567890a'
@@ -27,30 +25,29 @@ class AlexaAbfahrtenSkill
         'LC_TIME' => "de_DE"
         // We use german Echo so we want our date output to be german
     );
+    public $debug = false;
+    public $journeys = array();
     public $destination = '';
     public $rawJSON;
     public $destination_only;
     public $EchoReqObj = '';
     public $display_supported = false;
-    public $remove_from_output = '';
     public $replace_in_output = '';
 
     public function __construct($origin, $destination, $application_id)
     {
         $this->destination = $destination;
         $this->setup['ApplicationID'] = $application_id;
-        $DBreiseplanner = new DBreiseplanner($origin,$destination);
+        $DBreiseplanner = new DBreiseplanner($origin, $destination);
         $DBreiseplanner->cache_in_minutes = 0;
         $DBreiseplanner->getXML();
         $DBreiseplanner->fillJourneys();
 
         $this->journeys = $DBreiseplanner->getJourneys();
 
-
         if (isset($_GET["debug"]) AND htmlspecialchars($_GET["debug"]) == true) {
             $this->setDebug(true);
         }
-
     }
 
     /**
@@ -106,7 +103,7 @@ class AlexaAbfahrtenSkill
         if ($this->debug == false) {
 
             $EchoReqObj = $this->EchoReqObj;
-            $rawJSON    = $this->rawJSON;
+            $rawJSON = $this->rawJSON;
             $SETUP = $this->setup;
 
             if ($EchoReqObj == '') {
@@ -146,8 +143,8 @@ class AlexaAbfahrtenSkill
                 $local_pem = file_get_contents($local_pem_hash_file);
 
 
-                if ( openssl_verify( $rawJSON, base64_decode( $_SERVER['HTTP_SIGNATURE'] ), $local_pem ) !== 1 ) {
-                    $this->ThrowRequestError( 400, "Forbidden, failed to verify SSL Signature!" );
+                if (openssl_verify($rawJSON, base64_decode($_SERVER['HTTP_SIGNATURE']), $local_pem) !== 1) {
+                    $this->ThrowRequestError(400, "Forbidden, failed to verify SSL Signature!");
                 }
 
                 // Parse the Certificate for additional Checks
@@ -185,21 +182,19 @@ class AlexaAbfahrtenSkill
 
     public function getAlexaJSONResponse()
     {
-
         $this->validateRequest();
 
         $title = $this->journeys[0]->origin . ' in Richtung ' . $this->destination;
-        $title = str_replace($this->remove_from_output, "", $title);
         $title = str_replace($this->replace_in_output[0], $this->replace_in_output[1], $title);
 
         $delay = '';
 
         if (count($this->journeys) > 0) {
-            if($this->journeys[0]->delay > 0 OR $this->journeys[1]->delay > 0){
+            if ($this->journeys[0]->delay > 0 OR $this->journeys[1]->delay > 0) {
                 $delay = 'Verspätung! ';
             }
 
-            $speech =  $delay . 'In ' . $this->journeys[0]->getRealtime() . ' Minuten fährt die ' . $this->journeys[0]->product . ' ab ' . $this->journeys[0]->origin . ' in Richtung ' . $this->destination . '.';
+            $speech = $delay . 'In ' . $this->journeys[0]->getRealtime() . ' Minuten fährt die ' . $this->journeys[0]->product . ' ab ' . $this->journeys[0]->origin . ' in Richtung ' . $this->destination . '.';
         }
 
         if (count($this->journeys) == 0) {
@@ -269,7 +264,6 @@ class AlexaAbfahrtenSkill
             $responseArray['response']['directives'] = $directives;
         }
 
-
         header("Cache-Control: no-store, no-cache, must-revalidate, max-age=0");
         header("Cache-Control: post-check=0, pre-check=0", false);
         header("Pragma: no-cache");
@@ -283,3 +277,4 @@ class AlexaAbfahrtenSkill
 }
 
 ?>
+
