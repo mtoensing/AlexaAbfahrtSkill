@@ -192,14 +192,20 @@ class AlexaAbfahrtenSkill
         $title = str_replace($this->remove_from_output, "", $title);
         $title = str_replace($this->replace_in_output[0], $this->replace_in_output[1], $title);
 
+        $delay = '';
+
         if (count($this->journeys) > 0) {
-            $speech = 'In ' . $this->journeys[0]->getRelativeMinutes() . ' Minuten fährt die ' . $this->journeys[0]->product . ' ab ' . $this->journeys[0]->origin . ' in Richtung ' . $this->destination . '.';
+            if($this->journeys[0]->delay > 0 OR $this->journeys[1]->delay > 0){
+                $delay = 'Verspätung! ';
+            }
+
+            $speech =  $delay . 'In ' . $this->journeys[0]->getRealtime() . ' Minuten fährt die ' . $this->journeys[0]->product . ' ab ' . $this->journeys[0]->origin . ' in Richtung ' . $this->destination . '.';
         }
 
         if (count($this->journeys) == 0) {
             $speech = 'Ich habe aktuell keine Informationen zu Abfahrten ' . $this->origin;
         } elseif (count($this->journeys) > 1) {
-            $speech = $speech . ' Die übernächste ' . $this->journeys[1]->product . ' kommt in ' . $this->journeys[1]->getRelativeMinutes() . ' Minuten.';
+            $speech = $speech . ' Die übernächste ' . $this->journeys[1]->product . ' kommt in ' . $this->journeys[1]->getRealtime() . ' Minuten.';
         }
 
         $speech = str_replace($this->replace_in_output[0], $this->replace_in_output[1], $speech);
@@ -210,7 +216,7 @@ class AlexaAbfahrtenSkill
 
         foreach ($this->journeys as $journey) {
 
-            $text = 'In <b>' . $journey->getRelativeMinutes() . '</b> Minuten';
+            $text = 'In <b>' . $journey->getRealtime() . '</b> Minuten';
 
             $items[] = [
                 'token' => 'departure-item-' . $count,

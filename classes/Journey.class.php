@@ -13,7 +13,8 @@ class Journey {
 	public $origin = '';
 	public $destination = '';
 	public $arrival_timestamp = '';
-	public $delay = '';
+	public $delay = 0;
+	public $realtime;
 
 
 	public function getArrivalFullDate() {
@@ -21,6 +22,16 @@ class Journey {
 
 		return $arrival_date;
 	}
+
+    /**
+     * @return int
+     */
+    public function getDelay()
+    {
+        return $this->delay;
+    }
+
+
 
 	public function getRelativeMinutes() {
 		$timestampt_diff = $this->arrival_timestamp - time();
@@ -39,6 +50,17 @@ class Journey {
 			$this->delay = 0;
 		}
 	}
+
+    /**
+     * @return mixed
+     */
+    public function getRealtime()
+    {
+        $this->realtime = $this->getRelativeMinutes() + $this->getDelay();
+        return $this->realtime;
+    }
+
+
 
 	/**
 	 * @param string $product

@@ -120,10 +120,6 @@ class DBreiseplanner {
 
 		}
 
-
-
-		//var_dump($data);
-
 		$this->setData( $data );
 
 		$this->convertBAHNXML();
@@ -204,7 +200,10 @@ class DBreiseplanner {
 			$journey->fixProduct();
 
 			$delay = $journey_xml['delay']->__toString();
-			$journey->setDelay( $delay );
+
+			if($delay > 0){
+			    $journey->setDelay( $delay );
+            }
 
 			if ( $journey->getRelativeMinutes() > 1 ) {
 				$this->setJourneys( $journey );
