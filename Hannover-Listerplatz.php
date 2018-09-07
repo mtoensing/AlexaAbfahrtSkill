@@ -17,4 +17,3 @@ $AlexaAbfahrtenSkill->replace_in_output  = array(
 
 echo $AlexaAbfahrtenSkill->getAlexaJSONResponse();
 
-

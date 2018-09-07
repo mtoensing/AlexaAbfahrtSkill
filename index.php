@@ -7,7 +7,7 @@ spl_autoload_register( function ( $class_name ) {
 $AlexaAbfahrtenSkill = new AlexaAbfahrtenSkill(
     "Hannover, Kafkastrasse",
     "Wettbergen, Hannover",
-    'amzn1.ask.skill.8228c964-a30c-41af-b817-948bd6c7903c'
+    'amzn1.ask.skill.6f5d7f58-b0c7-4ef4-96c8-dd28418c96ba'
 );
 
 $AlexaAbfahrtenSkill->replace_in_output  = array(
