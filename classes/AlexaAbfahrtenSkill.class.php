@@ -204,7 +204,6 @@ class AlexaAbfahrtenSkill
         }
 
         $speech = str_replace($this->replace_in_output[0], $this->replace_in_output[1], $speech);
-        $speech = str_replace($this->remove_from_output, "", $speech);
 
         $items = array();
         $count = 0;
