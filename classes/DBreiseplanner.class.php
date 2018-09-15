@@ -10,6 +10,7 @@
 class DBreiseplanner {
 
 	const BAHN_ENDPOINT_URL = 'https://reiseauskunft.bahn.de//bin/stboard.exe/dn?rt=1&time=actual&start=yes&boardType=dep&L=vs_java3&input=';
+	public $version = 1;
 	public $cache_in_minutes = 5;
 	public $debug = false;
 	public $data = '';
